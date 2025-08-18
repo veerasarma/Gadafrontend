@@ -6,6 +6,7 @@ import { LoginForm } from '@/components/auth/LoginForm';
 import { activateaccount } from '@/services/userServices';
 import { toast } from '@/components/ui/use-toast'
 import { Alert } from '@/components/ui/alert';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085';
 
 export default function ActivationPage() {
   const { accessToken,user, isLoading } = useAuth();
@@ -50,9 +51,18 @@ export default function ActivationPage() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link to="/">
-          <h1 className="text-[#1877F2] text-5xl font-bold mb-6">Gada</h1>
-        </Link>
+         <Link
+                  to="/"
+                  className="inline-flex items-center justify-center gap-3 mb-4"
+                  aria-label="Go to home"
+                >
+                  <img
+                    src={`${API_BASE_URL}/uploads/gadalogo.png`}
+                    alt="Gada logo"
+                    className="h-12 w-12 object-contain"
+                  />
+                  <span className="text-[#1877F2] text-5xl font-bold leading-none">Gada.chat</span>
+                </Link>
         <h2 className="text-gray-900 text-xl">
           Connect with friends and the world around you
         </h2>

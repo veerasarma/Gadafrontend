@@ -19,7 +19,7 @@ export function FriendRequests() {
         <div key={r.id} className="flex items-center justify-between bg-white p-3 rounded shadow">
           <div className="flex items-center space-x-3">
             <img
-              src={(r.fromProfileImage?API_BASE_URL+'/uploads/'+r.fromProfileImage:API_BASE_URL+'/uploads/profile/defaultavatar.png')}
+              src={(r.fromProfileImage?API_BASE_URL+'/uploads/'+r.fromProfileImage:API_BASE_URL+'/uploads//profile/defaultavatar.png')}
               alt={r.fromUsername}
               className="h-10 w-10 rounded-full object-cover"
             />

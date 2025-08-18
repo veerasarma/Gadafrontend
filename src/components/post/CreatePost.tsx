@@ -7,12 +7,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { ImageIcon, VideoIcon, Loader2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { stripUploads } from '@/lib/url';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 
 export function CreatePost() {
   const { user } = useAuth();
   const { addPost } = usePost();
   const [content, setContent] = useState('');
-
+console.log(user,'useruseruser')
   // Store raw files for upload
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [videoFiles, setVideoFiles] = useState<File[]>([]);
@@ -98,7 +100,7 @@ export function CreatePost() {
       {/* On small screens stack avatar above form, on md+ sit in a row */}
       <div className="flex flex-col sm:flex-row sm:space-x-3">
         <Avatar className="mb-3 sm:mb-0 h-10 w-10 flex-shrink-0">
-          <AvatarImage src={user.profileImage} alt={user.username} />
+          <AvatarImage src={API_BASE_URL+'/uploads/'+stripUploads(user.profileImage)} alt={user.username} />
           <AvatarFallback>{getInitials(user.username)}</AvatarFallback>
         </Avatar>
 

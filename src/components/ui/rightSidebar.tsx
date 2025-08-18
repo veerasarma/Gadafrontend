@@ -20,15 +20,15 @@ export type RightSidebarProps = {
 };
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 const sampleUsers: ProItem[] = [
-  { id: 1, name: 'Chibuzor Okafor', avatar: API_BASE_URL+'/uploads/profile/defaultavatar.png' },
-  { id: 2, name: 'Ajibo Chima', avatar: API_BASE_URL+'/uploads/profile/defaultavatar.png' },
-  { id: 3, name: 'Anthonia Adoyi', avatar: API_BASE_URL+'/uploads/profile/defaultavatar.png' },
+  { id: 1, name: 'Chibuzor Okafor', avatar: API_BASE_URL+'/uploads//profile/defaultavatar.png' },
+  { id: 2, name: 'Ajibo Chima', avatar: API_BASE_URL+'/uploads//profile/defaultavatar.png' },
+  { id: 3, name: 'Anthonia Adoyi', avatar: API_BASE_URL+'/uploads//profile/defaultavatar.png' },
 ];
 
 const samplePages: ProItem[] = [
-  { id: 'p1', name: 'STAGES', avatar: API_BASE_URL+'/uploads/profile/defaultavatar.png' },
-  { id: 'p2', name: 'Movie World', avatar: API_BASE_URL+'/uploads/profile/defaultavatar.png' },
-  { id: 'p3', name: 'EBUKABEST PAGE', avatar: API_BASE_URL+'/uploads/profile/defaultavatar.png' },
+  { id: 'p1', name: 'STAGES', avatar: API_BASE_URL+'/uploads//profile/defaultavatar.png' },
+  { id: 'p2', name: 'Movie World', avatar: API_BASE_URL+'/uploads//profile/defaultavatar.png' },
+  { id: 'p3', name: 'EBUKABEST PAGE', avatar: API_BASE_URL+'/uploads//profile/defaultavatar.png' },
 ];
 
 const sampleTags: Tag[] = [
@@ -44,11 +44,11 @@ const sampleTags: Tag[] = [
 ];
 
 const sampleSuggestions: Suggestion[] = [
-  { id: 's1', name: 'Kafilat Ojeleye', avatar: API_BASE_URL+'/uploads/profile/defaultavatar.png', mutual: 1 },
-  { id: 's2', name: 'Genoveva Nietzsche', avatar: API_BASE_URL+'/uploads/profile/defaultavatar.png', mutual: 1 },
-  { id: 's3', name: 'Ebhohon Rowland', avatar: API_BASE_URL+'/uploads/profile/defaultavatar.png', mutual: 1 },
-  { id: 's4', name: 'Purity Alaiga', avatar: API_BASE_URL+'/uploads/profile/defaultavatar.png', mutual: 2 },
-  { id: 's5', name: 'Queen Sophia', avatar: API_BASE_URL+'/uploads/profile/defaultavatar.png', mutual: 1 },
+  { id: 's1', name: 'Kafilat Ojeleye', avatar: API_BASE_URL+'/uploads//profile/defaultavatar.png', mutual: 1 },
+  { id: 's2', name: 'Genoveva Nietzsche', avatar: API_BASE_URL+'/uploads//profile/defaultavatar.png', mutual: 1 },
+  { id: 's3', name: 'Ebhohon Rowland', avatar: API_BASE_URL+'/uploads//profile/defaultavatar.png', mutual: 1 },
+  { id: 's4', name: 'Purity Alaiga', avatar: API_BASE_URL+'/uploads//profile/defaultavatar.png', mutual: 2 },
+  { id: 's5', name: 'Queen Sophia', avatar: API_BASE_URL+'/uploads//profile/defaultavatar.png', mutual: 1 },
 ];
 
 function SectionShell({

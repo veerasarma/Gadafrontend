@@ -37,7 +37,7 @@ export default function PaymentsPage() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
-  const [balance, setBalance] = useState(0);
+  const [balance, setBalance] = useState({user_wallet_balance:0,user_points:0});
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -52,7 +52,7 @@ export default function PaymentsPage() {
       .catch(console.error)
       .finally(() => setLoadingTx(false));
 
-      fetchBalance(headers)
+      const result = fetchBalance(headers)
       .then(setBalance)
       .catch(console.error)
       .finally(() => setLoadingTx(false));
@@ -148,7 +148,7 @@ export default function PaymentsPage() {
                 <div>
                   <p className="text-sm text-gray-500">Your Credit</p>
                   <p className="text-2xl font-semibold">
-                    ₦{balance.toLocaleString()}
+                    ₦{balance.user_wallet_balance.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -327,163 +327,3 @@ export default function PaymentsPage() {
     </div>
   );
 }
-
-// import { useState, useEffect } from 'react';
-// import { format } from 'date-fns';
-// import { useAuth } from '@/contexts/AuthContext';
-// import { useAuthHeader } from '@/hooks/useAuthHeader';
-// import { fetchTransactions, Transaction } from '@/services/paymentService';
-// import { Navbar } from '@/components/layout/Navbar';
-// import Sidebar from '@/components/ui/Sidebar1';
-// import { Input } from '@/components/ui/input';
-// import { Button } from '@/components/ui/button';
-// import { Wallet, CreditCard } from 'lucide-react';
-
-// export default function PaymentsPage() {
-//   const { user, accessToken } = useAuth();
-//   const headers = useAuthHeader(accessToken);
-//   const [transactions, setTransactions] = useState<Transaction[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [startDate, setStartDate] = useState<string>('');
-//   const [endDate, setEndDate]   = useState<string>('');
-
-//   // Load on mount or date changes
-//   useEffect(() => {
-//     if (!accessToken) return;
-//     setLoading(true);
-//     fetchTransactions(headers, startDate, endDate)
-//       .then(setTransactions)
-//       .catch(console.error)
-//       .finally(() => setLoading(false));
-//   }, [accessToken, startDate, endDate]);
-
-//   // Dummy balance—replace with real fetch
-//   const balance =  user?.walletBalance ?? 0;
-
-//   return (
-//     <div className="flex flex-col min-h-screen bg-gray-100">
-//       <Navbar />
-
-//       <div className="flex flex-1 overflow-hidden px-4 lg:px-8 py-6">
-//         <div className="flex flex-1 max-w-[1600px] w-full mx-auto space-x-6">
-
-//           {/* Sidebar */}
-//           <aside className="hidden lg:block lg:w-1/5">
-//             <div className="sticky top-16">
-//               <Sidebar />
-//             </div>
-//           </aside>
-
-//           {/* Main content */}
-//           <main className="flex-1 flex flex-col overflow-y-auto">
-//             <div className="space-y-6 py-6">
-
-//               {/* Banner & Tabs */}
-//               <div className="bg-gradient-to-r from-blue-600 to-blue-400 rounded-lg overflow-hidden">
-//                 <div className="px-6 py-8 flex items-center">
-//                   <Wallet className="h-8 w-8 text-white mr-4" />
-//                   <div>
-//                     <h1 className="text-2xl font-bold text-white">Wallet</h1>
-//                     <p className="text-white">Send and transfer money</p>
-//                   </div>
-//                 </div>
-//                 <div className="bg-white">
-//                   <nav className="flex space-x-8 px-6">
-//                     <button className="py-4 text-blue-600 border-b-2 border-blue-600 font-medium">
-//                       Wallet
-//                     </button>
-//                     <button
-//                       className="py-4 text-gray-600 hover:text-gray-900"
-//                       onClick={() => window.location.href = '/payments'}
-//                     >
-//                       Payments
-//                     </button>
-//                   </nav>
-//                 </div>
-//               </div>
-
-//               {/* Summary */}
-//               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-//                 <div className="bg-white rounded-lg shadow p-6 flex items-center space-x-4">
-//                   <CreditCard className="h-6 w-6 text-gray-500" />
-//                   <div>
-//                     <p className="text-sm text-gray-500">Your Credit</p>
-//                     <p className="text-2xl font-semibold">₦{balance.toLocaleString()}</p>
-//                   </div>
-//                 </div>
-//                 {/* You could add quick actions here */}
-//               </div>
-
-//               {/* Filters */}
-//               <div className="bg-white rounded-lg shadow p-6 flex flex-col sm:flex-row items-end sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-//                 <div>
-//                   <p className="text-sm text-gray-600 mb-1">Start Date</p>
-//                   <Input
-//                     type="date"
-//                     value={startDate}
-//                     onChange={e => setStartDate(e.target.value)}
-//                     max={format(new Date(), 'yyyy-MM-dd')}
-//                   />
-//                 </div>
-//                 <div>
-//                   <p className="text-sm text-gray-600 mb-1">End Date</p>
-//                   <Input
-//                     type="date"
-//                     value={endDate}
-//                     onChange={e => setEndDate(e.target.value)}
-//                     max={format(new Date(), 'yyyy-MM-dd')}
-//                   />
-//                 </div>
-//                 <Button onClick={() => { setStartDate(''); setEndDate(''); }}>
-//                   Clear
-//                 </Button>
-//               </div>
-
-//               {/* Transactions Table */}
-//               <div className="bg-white rounded-lg shadow p-6">
-//                 {loading ? (
-//                   <div className="flex justify-center py-10">
-//                     {/* <Loader className="h-6 w-6 animate-spin text-gray-500" /> */}
-//                   </div>
-//                 ) : (
-//                   <Table>
-//                     <TableHeader>
-//                       <TableRow>
-//                         <TableHead>Date</TableHead>
-//                         <TableHead>Type</TableHead>
-//                         <TableHead>Status</TableHead>
-//                         <TableHead className="text-right">Amount (₦)</TableHead>
-//                       </TableRow>
-//                     </TableHeader>
-//                     <TableBody>
-//                       {transactions.map(tx => (
-//                         <TableRow key={tx.id}>
-//                           <TableCell>{format(new Date(tx.createdAt), 'MMM d, yyyy')}</TableCell>
-//                           <TableCell className="capitalize">{tx.type}</TableCell>
-//                           <TableCell className={`capitalize ${tx.status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-//                             {tx.status}
-//                           </TableCell>
-//                           <TableCell className="text-right">
-//                             {tx.amount.toLocaleString()}
-//                           </TableCell>
-//                         </TableRow>
-//                       ))}
-//                       {transactions.length === 0 && (
-//                         <TableRow>
-//                           <TableCell colSpan={4} className="text-center text-gray-500 py-10">
-//                             No transactions found.
-//                           </TableCell>
-//                         </TableRow>
-//                       )}
-//                     </TableBody>
-//                   </Table>
-//                 )}
-//               </div>
-//             </div>
-//           </main>
-
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }

@@ -28,9 +28,11 @@ export interface InitializeResponse {
     status: string;
     createdAt: string;
   }
-  export interface Balance {
-    balance: number;
-  }
+  export type Balance = {
+    user_wallet_balance: number;
+    user_points: number;
+  };
+  
   
   export async function fetchTransactions(
     headers: Record<string,string>,
@@ -48,12 +50,33 @@ export interface InitializeResponse {
   
   
   export async function fetchBalance(
-    headers: Record<string,string>,
+    headers: Record<string,string>
   ): Promise<Balance> {
   
-    const res = await fetch(API_BASE_URL+`/api/users/fetchbalance`, { headers });
-    if (!res.ok) throw new Error('Failed to load transactions');
-    return res.json();
+    // const res = await fetch(API_BASE_URL+`/api/users/fetchbalance`, { headers });
+    // if (!res.ok) throw new Error('Failed to load transactions');
+    // return res.json();
+
+    const res = await fetch(`${API_BASE_URL}/api/users/fetchuserbalance`, {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+    });
+  
+    if (!res.ok) {
+      const msg = await res.text().catch(() => 'Failed to load balance');
+      throw new Error(msg || 'Failed to load balance');
+    }
+  
+    const raw = (await res.json()) as {
+      user_wallet_balance: number | string;
+      user_points: number | string;
+    };
+  
+    return {
+      user_wallet_balance: Number(raw.user_wallet_balance) || 0,
+      user_points: Number(raw.user_points) || 0,
+    };
   }
   
   

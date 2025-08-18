@@ -8,7 +8,7 @@ import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { stripUploads } from '@/lib/url';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
-const DEFAULT_AVATAR = `${API_BASE_URL}/uploads/profile/defaultavatar.png`;
+const DEFAULT_AVATAR = `${API_BASE_URL}/uploads//profile/defaultavatar.png`;
 
 type Props = {
   reel: Reel;

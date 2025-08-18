@@ -62,7 +62,7 @@ function Row({ n }: { n: any }) {
   const href = (n.meta && n.meta.postId) ? `/posts/${n.meta.postId}` : '#';
   return (
     <Link to={href} className="flex items-start gap-3">
-      <img src={(n.actorAvatar)?API_BASE_URL+'/uploads/'+stripUploads(n.actorAvatar): API_BASE_URL+'/uploads/profile/defaultavatar.png'} alt="" className="h-10 w-10 rounded-full object-cover" />
+      <img src={(n.actorAvatar)?API_BASE_URL+'/uploads/'+stripUploads(n.actorAvatar): API_BASE_URL+'/uploads//profile/defaultavatar.png'} alt="" className="h-10 w-10 rounded-full object-cover" />
 
       <div className="flex-1">
         <div className="text-sm"><span className="font-semibold">{n.actorName}</span> {simpleText(n.type)}</div>

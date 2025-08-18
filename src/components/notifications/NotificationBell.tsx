@@ -93,7 +93,7 @@ const returnTo = `${loc.pathname}${loc.search}${loc.hash}`;
     state={{ isModal: true, returnTo }}   // ✅ ONLY plain JSON
   >
        {/* <Link to={href} className="flex items-start gap-3">  */}
-      <img src={(n.actorAvatar)?API_BASE_URL+'/uploads/'+stripUploads(n.actorAvatar): API_BASE_URL+'/uploads/profile/defaultavatar.png'} alt="" className="h-9 w-9 rounded-full object-cover" />
+      <img src={(n.actorAvatar)?API_BASE_URL+'/uploads/'+stripUploads(n.actorAvatar): API_BASE_URL+'/uploads//profile/defaultavatar.png'} alt="" className="h-9 w-9 rounded-full object-cover" />
       <div className="flex-1">
         <div className="text-sm">
           <span className="font-semibold">{n.actorName}</span> {text}

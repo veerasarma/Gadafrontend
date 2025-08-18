@@ -1,5 +1,5 @@
 // src/pages/RepresentativePage.tsx
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,14 +18,16 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthHeader } from '@/hooks/useAuthHeader';
+import { Badge } from '@/components/ui/badge';
 
 const API_BASE_URL: string =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8085';
 
-// Validation
+/* ------------------------------ Validation ------------------------------ */
+
 const schema = z.object({
   name: z.string().min(2, 'Name is required'),
   username: z
@@ -50,11 +52,24 @@ const schema = z.object({
 });
 type RepForm = z.infer<typeof schema>;
 
+type RepRecord = RepForm & {
+  id: number;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export default function RepresentativePage() {
   const { accessToken } = useAuth();
   const headers = useAuthHeader(accessToken);
-  const { toast } = useToast();
+
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [existing, setExisting] = useState<RepRecord | null>(null);
+  const [isEditing, setIsEditing] = useState(true);
+
+  // guard to avoid duplicate calls within the same token session
+  const hasLoadedRef = useRef(false);
 
   const form = useForm<RepForm>({
     resolver: zodResolver(schema),
@@ -70,35 +85,123 @@ export default function RepresentativePage() {
       gadaChatUsername: '',
       note: '',
     },
+    mode: 'onBlur',
   });
+
+  /* Reset the one-shot guard whenever the token changes (e.g., re-login) */
+  useEffect(() => {
+    hasLoadedRef.current = false;
+  }, [accessToken]);
+
+  /* ---------------------------- Load if exists ---------------------------- */
+  useEffect(() => {
+    // wait until we actually have a token
+    if (!accessToken) return;
+    // already loaded once for this token
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
+
+    const ac = new AbortController();
+
+    (async () => {
+      try {
+        setLoading(true);
+
+        const res = await fetch(`${API_BASE_URL}/api/representatives/me`, {
+          headers,
+          credentials: 'include',
+          signal: ac.signal,
+        });
+
+        if (res.status === 404) {
+          setExisting(null);
+          setIsEditing(true);
+          return;
+        }
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j?.error || 'Failed to load application');
+        }
+
+        const data: RepRecord = await res.json();
+
+        setExisting(data);
+        // hydrate form with existing values
+        form.reset({
+          name: data.name,
+          username: data.username,
+          phone: data.phone,
+          email: data.email,
+          state: data.state,
+          residentAddress: data.residentAddress,
+          residentialState: data.residentialState,
+          proposedLocation: data.proposedLocation,
+          gadaChatUsername: data.gadaChatUsername,
+          note: data.note,
+        });
+        setIsEditing(false); // lock inputs until user clicks Edit
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+        console.error(err);
+        toast.error('Could not load representative application.');
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => ac.abort();
+    // Intentional: depend only on token; `headers` identity can change between renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken]);
 
   const onSubmit = async (values: RepForm) => {
     try {
       setSubmitting(true);
-      const res = await fetch(`${API_BASE_URL}/api/representatives`, {
-        method: 'POST',
+      const isUpdate = !!existing;
+      const url = isUpdate
+        ? `${API_BASE_URL}/api/representatives/me`
+        : `${API_BASE_URL}/api/representatives`;
+      const method = isUpdate ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { ...headers, 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(values),
       });
+
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        throw new Error(j?.error || 'Failed to submit application');
+        throw new Error(j?.error || 'Failed to save application');
       }
-      toast({
-        title: 'Application submitted',
-        description: 'We’ll review and get back to you shortly.',
-      });
-      form.reset();
+
+      const saved: RepRecord = await res.json();
+      setExisting(saved);
+      setIsEditing(false);
+      toast.success(isUpdate ? 'Your changes have been saved' : 'We’ll review and get back to you shortly');
     } catch (err: any) {
-      toast({
-        title: 'Submission failed',
-        description: err?.message ?? 'Please try again.',
-        variant: 'destructive',
-      });
+      toast.error(err?.message ?? 'Please try again');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const statusBadge = existing?.status ? (
+    <Badge
+      variant={
+        existing.status === 'approved'
+          ? 'default'
+          : existing.status === 'rejected'
+          ? 'destructive'
+          : 'secondary'
+      }
+      className="capitalize"
+    >
+      {existing.status}
+    </Badge>
+  ) : null;
+
+  const disableInputs = loading || submitting || (!isEditing && !!existing);
 
   return (
     <div className="flex flex-col h-screen bg-cus">
@@ -115,17 +218,36 @@ export default function RepresentativePage() {
 
           {/* Center (wider) */}
           <main className="flex-1 min-h-0 overflow-y-auto">
-            {/* widened wrapper */}
             <div className="w-full max-w-5xl 2xl:max-w-6xl mx-auto">
               <div className="rounded-xl shadow-sm border bg-white overflow-hidden">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-[#7C3AED] via-[#5B6CFA] to-[#1D4ED8] p-6">
-                  <h1 className="text-white text-2xl font-bold">
-                    Become a Representative
-                  </h1>
-                  <p className="text-white/90">
-                    Share a few details and the team will reach out if it’s a fit.
-                  </p>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h1 className="text-white text-2xl font-bold">
+                        Become a Representative
+                      </h1>
+                      <p className="text-white/90">
+                        Share a few details and the team will reach out if it’s a fit.
+                      </p>
+                    </div>
+
+                    {/* Status + Edit */}
+                    <div className="flex items-center gap-3">
+                      {statusBadge}
+                      {!!existing && (
+                        <Button
+                          type="button"
+                          variant={isEditing ? 'secondary' : 'outline'}
+                          onClick={() => setIsEditing((v) => !v)}
+                          disabled={loading || submitting}
+                          className="bg-white/10 text-white hover:bg-white/20 border-white/20"
+                        >
+                          {isEditing ? 'Cancel' : 'Edit'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Form */}
@@ -140,7 +262,7 @@ export default function RepresentativePage() {
                             <FormItem>
                               <FormLabel>Name</FormLabel>
                               <FormControl>
-                                <Input placeholder="Full name" {...field} />
+                                <Input placeholder="Full name" {...field} disabled={disableInputs} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -153,7 +275,7 @@ export default function RepresentativePage() {
                             <FormItem>
                               <FormLabel>Username</FormLabel>
                               <FormControl>
-                                <Input placeholder="username" {...field} />
+                                <Input placeholder="username" {...field} disabled={disableInputs} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -166,7 +288,7 @@ export default function RepresentativePage() {
                             <FormItem>
                               <FormLabel>Phone number</FormLabel>
                               <FormControl>
-                                <Input placeholder="+234..." {...field} />
+                                <Input placeholder="+234..." {...field} disabled={disableInputs} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -179,7 +301,7 @@ export default function RepresentativePage() {
                             <FormItem>
                               <FormLabel>Email</FormLabel>
                               <FormControl>
-                                <Input type="email" placeholder="you@example.com" {...field} />
+                                <Input type="email" placeholder="you@example.com" {...field} disabled={disableInputs} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -192,7 +314,7 @@ export default function RepresentativePage() {
                             <FormItem>
                               <FormLabel>State</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g., Lagos" {...field} />
+                                <Input placeholder="e.g., Lagos" {...field} disabled={disableInputs} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -205,7 +327,7 @@ export default function RepresentativePage() {
                             <FormItem>
                               <FormLabel>Residential state</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g., Lagos" {...field} />
+                                <Input placeholder="e.g., Lagos" {...field} disabled={disableInputs} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -220,7 +342,7 @@ export default function RepresentativePage() {
                           <FormItem>
                             <FormLabel>Resident address</FormLabel>
                             <FormControl>
-                              <Input placeholder="Street, city, state" {...field} />
+                              <Input placeholder="Street, city, state" {...field} disabled={disableInputs} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -235,7 +357,7 @@ export default function RepresentativePage() {
                             <FormItem>
                               <FormLabel>Proposed location to represent</FormLabel>
                               <FormControl>
-                                <Input placeholder="City / area" {...field} />
+                                <Input placeholder="City / area" {...field} disabled={disableInputs} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -248,7 +370,7 @@ export default function RepresentativePage() {
                             <FormItem>
                               <FormLabel>Gada.chat username</FormLabel>
                               <FormControl>
-                                <Input placeholder="@yourhandle" {...field} />
+                                <Input placeholder="@yourhandle" {...field} disabled={disableInputs} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -267,6 +389,7 @@ export default function RepresentativePage() {
                                 placeholder="Tell us briefly about yourself, experience, and why you’d like to represent."
                                 className="min-h-[120px] resize-y"
                                 {...field}
+                                disabled={disableInputs}
                               />
                             </FormControl>
                             <FormMessage />
@@ -274,17 +397,55 @@ export default function RepresentativePage() {
                         )}
                       />
 
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-3">
+                        {!!existing && isEditing && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              if (existing) {
+                                form.reset({
+                                  name: existing.name,
+                                  username: existing.username,
+                                  phone: existing.phone,
+                                  email: existing.email,
+                                  state: existing.state,
+                                  residentAddress: existing.residentAddress,
+                                  residentialState: existing.residentialState,
+                                  proposedLocation: existing.proposedLocation,
+                                  gadaChatUsername: existing.gadaChatUsername,
+                                  note: existing.note,
+                                });
+                              }
+                              setIsEditing(false);
+                            }}
+                            disabled={submitting}
+                          >
+                            Cancel
+                          </Button>
+                        )}
                         <Button
                           type="submit"
-                          disabled={submitting}
+                          disabled={submitting || (!isEditing && !!existing)}
                           className="bg-[#1877F2] hover:bg-[#166FE5]"
                         >
-                          {submitting ? 'Submitting…' : 'Submit application'}
+                          {submitting
+                            ? 'Saving…'
+                            : existing
+                            ? isEditing
+                              ? 'Save Changes'
+                              : 'Locked'
+                            : 'Submit application'}
                         </Button>
                       </div>
                     </form>
                   </Form>
+
+                  {!!existing && (
+                    <p className="mt-4 text-xs text-gray-500">
+                      Last updated: {existing.updatedAt ? new Date(existing.updatedAt).toLocaleString() : '—'}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

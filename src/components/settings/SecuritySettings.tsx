@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { changePassword, getSessions, revokeSession, type SessionRow } from '@/services/settingsService';
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from 'sonner';
 
 export default function SecuritySettings() {
   const { accessToken } = useAuth();
@@ -20,7 +20,7 @@ export default function SecuritySettings() {
 
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
-  const { toast } = useToast();
+
 
   useEffect(() => {
     if (!accessToken) return;
@@ -31,24 +31,11 @@ export default function SecuritySettings() {
     setBusy(true);
     try {
       let result = await changePassword(currentPassword, newPassword, headers);
-      console.log(result,'resultresultresult')
+
       setCurrentPassword(''); setNewPassword('');
-      toast({
-        title: "Saved",
-        description: "Your settings were updated successfully.",
-      });
-      // toast success
+      toast.success('Your password has been updated successfully')
     } catch (e) {
-      console.error(e,'dfdsfdsfsdf');
-      console.error(e.errors,'dfdsfdsfsdf');
-      console.error(e.message,'dfdsfdsfsdf');
-    //   console.error(e,'dfdsfdsfsdf');
-    //   console.error(e,'dfdsfdsfsdf');
-      toast({
-        variant: "destructive",
-        title: "Save failed",
-        description: e?.path?.msg || "Something went wrong. Please try again.",
-      });
+    toast.error(e.message)
     } finally { setBusy(false); }
   };
 

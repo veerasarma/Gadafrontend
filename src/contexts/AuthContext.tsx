@@ -22,6 +22,8 @@ import {
   sendForgot,
 } from "@/services/userServices";
 import { useAuthHeader } from "@/hooks/useAuthHeader";
+import { stripUploads } from '@/lib/url';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 
 interface AuthContextType {
   accessToken: string | null;
@@ -73,15 +75,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await new Promise((resolve) => setTimeout(resolve, 500));
     const { token, user } = await signInUser(formData, headers);
     if (token && user) {
+      // console.log(user,'authcontext')
       let userdata = {
         id: user.user_id,
         firstname: user.user_firstname,
         lastname: user.user_firstname,
         username: user.user_name,
         email: user.user_email,
-        profileImage: user.user_profileImage
-          ? user.user_profileImage
-          : "/uploads/profile/defaultavatar.png",
+        profileImage: user.user_picture
+          ? '/uploads/'+stripUploads(user.user_picture)
+          : "/uploads//profile/defaultavatar.png",
         coverImage: user.user_coverImage,
         password: "",
         bio: "",
@@ -90,21 +93,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         walletBalance: user.user_wallet_balance,
         roles: user.role,
       };
-      console.log(user, "useruseruser");
+      // console.log(user, "useruseruser");
       setUser(userdata);
       setAccessToken(token);
       localStorage.setItem("accessToken", token);
       localStorage.setItem("UserData", JSON.stringify(userdata));
       return true;
     }
-    // const users = getUsers();
-    // const foundUser = users.find(u => u.email === email && u.password === password);
-
-    // if (foundUser) {
-    //   setUser(foundUser);
-    //   setUserInStorage(foundUser);
-    //   return true;
-    // }
     return false;
   };
 
@@ -185,9 +180,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const users = getUsers();
 
     // Check if email already exists
-    if (users.some((u) => u.email === email)) {
-      return false;
-    }
+    // if (users.some((u) => u.email === email)) {
+    //   return false;
+    // }
 
     // Create new user
     const newUser: User = {
@@ -213,26 +208,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Log in the new user
     setUser(newUser);
-    setUserInStorage(newUser);
     return true;
   };
 
   const updateProfile = (updates: Partial<User>) => {
     if (!user) return;
-
+    console.log(updates,'updatesupdatesupdates')
+    const upda = {profileImage:'/uploads/'+stripUploads(updates.profileImage)}
     // Update current user state
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-
-    // Update in localStorage
-    setUserInStorage(updatedUser);
-
-    // Update in users array
-    const users = getUsers();
-    const updatedUsers = users.map((u) =>
-      u.id === user.id ? { ...u, ...updates } : u
-    );
-    saveUsers(updatedUsers);
+    const updatedUser = { ...user, ...upda };
+    // console.log(updatedUser,'updatedUser')
+    setUser(updatedUser);  
+    // console.log(user,'slfkjsdfjsdklf')
   };
 
   const logout = () => {

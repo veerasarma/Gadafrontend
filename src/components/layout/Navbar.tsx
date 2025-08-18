@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthHeader } from "@/hooks/useAuthHeader";
 import { 
-  Bell, Home, User, Users, LogOut, Menu, Search, MessageCircle, X 
+  Bell, Home, User, Users, LogOut, Menu, Search, MessageCircle, X ,Currency, Wallet
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -17,6 +18,12 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { encodeId } from '@/lib/idCipher';
 import { stripUploads } from '@/lib/url';
+import {
+  fetchTransactions,
+  Transaction,
+  initializePayment,
+  fetchBalance
+} from "@/services/paymentService";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 import NotificationBell from '@/components/notifications/NotificationBell';
 
@@ -24,7 +31,20 @@ import NotificationBell from '@/components/notifications/NotificationBell';
 export function Navbar() {
   const { user,accessToken, logout } = useAuth();
   const navigate = useNavigate();
+  const [loadingTx, setLoadingTx] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [balance, setBalance] = useState({user_wallet_balance:0,user_points:0});
+
+  const headers = useAuthHeader(accessToken);
+  useEffect(() => {
+    if (!accessToken) return;
+    setLoadingTx(true);
+      const result = fetchBalance(headers)
+      .then(setBalance)
+      .catch(console.error)
+      .finally(() => setLoadingTx(false));
+
+  }, [accessToken]);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,6 +142,18 @@ export function Navbar() {
                     <User className="mr-2 h-4 w-4" /> Profile
                   </DropdownMenuItem>
                 </Link>
+                <DropdownMenuSeparator />
+                <Link to="/points">
+                <DropdownMenuItem className="cursor-pointer">
+                  <Currency className="mr-2 h-4 w-4" /> Points <span className="badge bg-light text-primary">{ balance.user_points}</span>
+                </DropdownMenuItem>
+                  </Link>
+                <DropdownMenuSeparator />
+                <Link to="/wallet">
+                <DropdownMenuItem className="cursor-pointer">
+                  <Wallet className="mr-2 h-4 w-4" /> Wallet <span className="badge bg-light text-primary">₦{ balance.user_wallet_balance}</span>
+                </DropdownMenuItem>
+                  </Link>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" /> Logout

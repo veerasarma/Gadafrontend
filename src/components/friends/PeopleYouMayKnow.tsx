@@ -19,12 +19,12 @@ console.log(suggestions,'suggestionssuggestions')
           <div key={user.id} className="text-center space-y-2">
             <Avatar className="h-16 w-16 mx-auto">
               {user?.profileImage ? (
-                <AvatarImage src={(user?.profileImage?API_BASE_URL+'/uploads/'+user.profileImage:API_BASE_URL+'/uploads/profile/defaultavatar.png')} />
+                <AvatarImage src={(user?.profileImage?API_BASE_URL+'/uploads/'+user.profileImage:API_BASE_URL+'/uploads//profile/defaultavatar.png')} />
               ) : (
                 // <AvatarFallback>
                 //   {user.user_name[0].toUpperCase()}
                 // </AvatarFallback>
-                <AvatarImage src={(API_BASE_URL+'/uploads/profile/defaultavatar.png')} />
+                <AvatarImage src={(API_BASE_URL+'/uploads//profile/defaultavatar.png')} />
               )}
             </Avatar>
             <div className="text-sm font-medium">{user.user_name}</div>

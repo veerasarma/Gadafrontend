@@ -12,6 +12,7 @@ import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+
 interface FriendContextType {
   friends: User[];
   suggestions: User[];

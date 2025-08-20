@@ -47,7 +47,7 @@ export default function AdminPosts() {
         page: String(page),
         limit: String(limit)
       });
-      const r = await fetch(`${API_BASE_URL}api/admin/posts?${params.toString()}`, { headers });
+      const r = await fetch(`${API_BASE_URL}/api/admin/posts?${params.toString()}`, { headers });
       if (!r.ok) throw new Error('Failed to load posts');
       const data = await r.json();
       setRows(data.items || []);

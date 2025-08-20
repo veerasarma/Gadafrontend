@@ -7,6 +7,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { fetchProUsers, type ProUser, fetchTrendingTags, type TrendingTagRow } from '@/services/proService';
 import { fetchFriendSuggestions, type User as FriendUser } from '@/services/friendService';
+import { stripUploads } from '@/lib/url';
+import { useNavigate } from "react-router-dom";
+
 
 type ProItem = { id: string | number; name: string; avatar: string };
 type Tag = { tag: string; count: number };
@@ -27,9 +30,9 @@ const sampleUsers: ProItem[] = [
 ];
 
 const samplePages: ProItem[] = [
-  { id: 'p1', name: 'STAGES',      avatar: `${API_BASE_URL}/uploads/profile/defaultavatar.png` },
-  { id: 'p2', name: 'Movie World', avatar: `${API_BASE_URL}/uploads/profile/defaultavatar.png` },
-  { id: 'p3', name: 'EBUKABEST',   avatar: `${API_BASE_URL}/uploads/profile/defaultavatar.png` },
+  { id: 'p1', name: 'STAGES',      avatar: `${API_BASE_URL}/uploads//profile/defaultavatar.png` },
+  { id: 'p2', name: 'Movie World', avatar: `${API_BASE_URL}/uploads//profile/defaultavatar.png` },
+  { id: 'p3', name: 'EBUKABEST',   avatar: `${API_BASE_URL}/uploads//profile/defaultavatar.png` },
 ];
 
 const sampleTags: Tag[] = [
@@ -108,12 +111,20 @@ function SuggestionsCard({
       </div>
       <ul className="divide-y">
         {list.map((s) => {
+          
           const id = (s as any).id ?? (s as any).user_id;
           const name = (s as any).user_name ?? (s as any).username ?? 'User';
-          const avatar =
-            (s as any).profileImage ??
-            (s as any).profile_image ??
-            `${API_BASE_URL}/uploads/profile/defaultavatar.png`;
+          let avatar;
+          if((s as any).profileImage)
+          {
+           
+            let profile = (s as any).profileImage;
+             avatar = API_BASE_URL+'/uploads/'+(profile);
+          }
+          else{
+             avatar =`${API_BASE_URL}/uploads//profile/defaultavatar.png`;
+          }
+  
 
           return (
             <li key={id} className="py-3 flex items-center justify-between gap-3">
@@ -146,6 +157,8 @@ export default function RightSidebar({
 }: RightSidebarProps) {
   const { accessToken } = useAuth();
   const headers = useAuthHeader(accessToken);
+  const navigate = useNavigate();
+
 
   const [proUsers, setProUsers] = React.useState<ProItem[]>(sampleUsers);
   const [suggestions, setSuggestions] = React.useState<FriendUser[]>([]);
@@ -169,7 +182,7 @@ export default function RightSidebar({
         setProUsers(
           list.map((u: ProUser) => {
             const base = `${API_BASE_URL}`.replace(/\/+$/, '');
-            let avatar = u.avatar || '/uploads/profile/defaultavatar.png';
+            let avatar = u.avatar || '/uploads//profile/defaultavatar.png';
             if (!avatar.startsWith('/uploads')) {
               avatar = `/uploads/${avatar}`.replace('//uploads', '/uploads');
             }
@@ -214,14 +227,14 @@ export default function RightSidebar({
 
   return (
     <div className="sticky top-20 space-y-6">
-      <HorizontalChips items={proUsers} title="Pro Users" cta="Upgrade" onCta={onUpgradeClick} />
-      <HorizontalChips items={samplePages} title="Pro Pages" cta="Upgrade" onCta={onUpgradeClick} />
+      <HorizontalChips items={proUsers} title="Pro Users" cta="Upgrade" onCta={() => navigate("/packages")} />
+      <HorizontalChips items={samplePages} title="Pro Pages" cta="Upgrade" onCta={() => navigate("/packages")} />
       <TrendingCard tags={tags} />
       <SectionShell className="p-5">
         <h3 className="text-lg font-semibold">Gadashares</h3>
         <div className="mt-2 h-14 rounded-xl bg-gray-50" />
       </SectionShell>
-      <SuggestionsCard list={suggestions} onAdd={onAddFriend} onSeeAll={onSeeAllSuggestions} />
+      <SuggestionsCard list={suggestions} onAdd={onAddFriend} onSeeAll={() => navigate("/friends")} />
     </div>
   );
 }

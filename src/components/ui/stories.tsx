@@ -86,7 +86,7 @@ const Stories: React.FC = () => {
           >
             <div className="w-16 h-16 rounded-full ring-2 ring-purple-400 overflow-hidden mx-auto">
               <img
-                src={(API_BASE_URL+'/uploads/'+stripUploads(group.avatar!=""?group.avatar:'/profile/defaultavatar.png'))}
+                src={(API_BASE_URL+'/uploads/'+stripUploads(group.avatar!=""?group.avatar:'//profile/defaultavatar.png'))}
                 alt={group.username}
                 className="w-full h-full object-cover"
               />

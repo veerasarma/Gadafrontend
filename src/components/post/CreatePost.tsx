@@ -14,7 +14,6 @@ export function CreatePost() {
   const { user } = useAuth();
   const { addPost } = usePost();
   const [content, setContent] = useState('');
-console.log(user,'useruseruser')
   // Store raw files for upload
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [videoFiles, setVideoFiles] = useState<File[]>([]);
@@ -100,7 +99,7 @@ console.log(user,'useruseruser')
       {/* On small screens stack avatar above form, on md+ sit in a row */}
       <div className="flex flex-col sm:flex-row sm:space-x-3">
         <Avatar className="mb-3 sm:mb-0 h-10 w-10 flex-shrink-0">
-          <AvatarImage src={API_BASE_URL+'/uploads/'+stripUploads(user.profileImage)} alt={user.username} />
+          <AvatarImage src={API_BASE_URL+'/uploads/'+stripUploads(user.profileImage?user.profileImage:'/profile/defaultavatar.png')} alt={user.username} />
           <AvatarFallback>{getInitials(user.username)}</AvatarFallback>
         </Avatar>
 

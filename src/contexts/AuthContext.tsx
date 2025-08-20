@@ -93,7 +93,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         walletBalance: user.user_wallet_balance,
         roles: user.role,
       };
-      // console.log(user, "useruseruser");
       setUser(userdata);
       setAccessToken(token);
       localStorage.setItem("accessToken", token);

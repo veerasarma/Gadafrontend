@@ -275,17 +275,17 @@ export function ForgotPassword() {
           </form>
         )}
       </CardContent>
-      {/* <CardFooter className="flex justify-center border-t p-4">
+      <CardFooter className="flex justify-center border-t p-4">
         <p>
-          Don't have an account?{" "}
+          Back to {""}
           <Link
-            to="/register"
+            to="/login"
             className="text-[#1877F2] hover:underline font-medium"
           >
-            Create an account
+            Login
           </Link>
         </p>
-      </CardFooter> */}
+      </CardFooter>
     </Card>
   );
 }

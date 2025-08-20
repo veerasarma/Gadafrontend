@@ -9,7 +9,7 @@ export function RequireRole({ roles, children }:{
   const location = useLocation();
 
   if (isLoading) return null;
-
+console.log(user,'useruseruser')
   const ok = user && hasAnyRole(user, roles);
   if (!ok) return <Navigate to="/" replace state={{ from: location }} />;
 

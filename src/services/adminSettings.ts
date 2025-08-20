@@ -10,7 +10,7 @@ export type AdminSettings = {
 };
 
 export async function fetchAllAdminSettings(headers: Record<string,string>): Promise<AdminSettings> {
-  const res = await fetch(`${API_BASE_URL}api/admin/settings`, { headers });
+  const res = await fetch(`${API_BASE_URL}/api/admin/settings`, { headers });
   if (!res.ok) throw new Error('Failed to load settings');
   return res.json();
 }
@@ -20,7 +20,7 @@ export async function updateAdminSection(
   data: Record<string, any>,
   headers: Record<string,string>
 ): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}api/admin/settings/${section}`, {
+  const res = await fetch(`${API_BASE_URL}/api/admin/settings/${section}`, {
     method: 'PUT',
     headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify(data),

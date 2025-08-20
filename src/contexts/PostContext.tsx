@@ -41,7 +41,6 @@ export const PostProvider: React.FC = ({ children }) => {
   }, [accessToken,user]);
 
   async function addPost(content: string, imageFiles: File[], videoFiles: File[]) {
-    console.log(headers1,'headers1headers1headers1')
     const media = await uploadMedia([...imageFiles, ...videoFiles],headers1);
     const newPost = await apiAddPost(user.id, content, media,headers);
     if(newPost)

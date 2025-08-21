@@ -114,7 +114,7 @@ const App = () => (
                     }
                   >
                      <Route
-                    path="/representative"
+                    path="representative"
                     element={<RepresentativePage />}
                   />
                     <Route index element={<AdminDashboard />} />

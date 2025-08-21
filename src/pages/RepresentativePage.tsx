@@ -252,6 +252,17 @@ export default function RepresentativePage() {
 
                 {/* Form */}
                 <div className="p-6">
+
+                     {/* ===== Highlight message (added) ===== */}
+                     <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4">
+                    <p className="text-sm text-amber-900">
+                      Only VVIP user can request to be a Representative
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold tracking-wide text-amber-900">
+                    PORTAL WILL BE OPENED ON 30TH AUGUST 2025
+                    </p>
+                  </div>
+                  {/* ===== End highlight ===== */}
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -426,7 +437,8 @@ export default function RepresentativePage() {
                         )}
                         <Button
                           type="submit"
-                          disabled={submitting || (!isEditing && !!existing)}
+                          disabled={true}
+                          // disabled={submitting || (!isEditing && !!existing)}
                           className="bg-[#1877F2] hover:bg-[#166FE5]"
                         >
                           {submitting

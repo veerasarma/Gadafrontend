@@ -369,7 +369,7 @@ export function PostItem({ post, trackViews = true }: PostItemProps) {
   const [saving, setSaving] = useState(false);
 
   const postAuthor = post.author;
-  console.log(postAuthor,'postAuthorpostAuthor')
+  // console.log(postAuthor,'postAuthorpostAuthor')
   const isLikedByCurrentUser = user ? post?.likes?.some(l => l.userId === user.id) : false;
 
   // ---- VIEW TRACKING (IntersectionObserver + 1s dwell) ----
@@ -474,12 +474,12 @@ export function PostItem({ post, trackViews = true }: PostItemProps) {
           <div className="flex-1 flex items-center space-x-3">
             <Link to={`/profile/${postAuthor.id}`}>
               <Avatar>
-                {/* {postAuthor.profileImage ? (
-                  <AvatarImage src={resolveMediaUrl(postAuthor.profileImage)} alt={postAuthor.username} />
-                ) : ( */}
+                {postAuthor.profileImage ? (
+                  <AvatarImage src={API_BASE_RAW+'/uploads/'+stripUploads(postAuthor.profileImage)} alt={postAuthor.username} />
+                ) : (
                   <AvatarImage src={API_BASE_RAW+'/uploads//profile/defaultavatar.png'} alt={postAuthor.username} />
              
-                {/* )} */}
+                )} 
               </Avatar>
             </Link>
             <div>

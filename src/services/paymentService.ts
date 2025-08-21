@@ -47,15 +47,20 @@ export interface InitializeResponse {
     if (!res.ok) throw new Error('Failed to load transactions');
     return res.json();
   }
+ 
+ 
+  export async function fetchSysdetails(
+    headers: Record<string,string>,
+  ): Promise<[]> {
+    const res = await fetch(API_BASE_URL+`/api/payments/getsystemdetails`, { headers });
+    if (!res.ok) throw new Error('Failed to load transactions');
+    return res.json();
+  }
   
   
   export async function fetchBalance(
     headers: Record<string,string>
   ): Promise<Balance> {
-  
-    // const res = await fetch(API_BASE_URL+`/api/users/fetchbalance`, { headers });
-    // if (!res.ok) throw new Error('Failed to load transactions');
-    // return res.json();
 
     const res = await fetch(`${API_BASE_URL}/api/users/fetchuserbalance`, {
       method: 'GET',

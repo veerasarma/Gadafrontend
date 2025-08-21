@@ -29,6 +29,8 @@ import SettingsPage from "@/pages/SettingsPage";
 import ComingSoonPage from "@/pages/ComingSoonPage";
 import RepresentativePage from "@/pages/RepresentativePage";
 import PointsPage from "@/pages/PointsPage";
+import HashtagPage from '@/pages/HashtagPage';
+
 
 import { RequireAuth } from "@/components/routing/RequireAuth";
 import { RequireRole } from "@/components/routing/RequireRole";
@@ -98,10 +100,9 @@ const App = () => (
                     element={<PostPermalinkPage />}
                   />
                   <Route path="/settings" element={<SettingsPage />} />
-                  <Route
-                    path="/representative"
-                    element={<RepresentativePage />}
-                  />
+                  <Route path="/representative" element={<RepresentativePage />} />
+                  <Route path="/hashtag/:tag" element={<HashtagPage />} />
+                 
 
                   <Route
                     path="/admin"
@@ -113,6 +114,10 @@ const App = () => (
                       </RequireAuth>
                     }
                   >
+                     <Route
+                    path="representative"
+                    element={<RepresentativePage />}
+                  />
                     <Route index element={<AdminDashboard />} />
                     <Route path="users" element={<AdminUsers />} />
                     <Route path="settings" element={<AdminSettings />} />

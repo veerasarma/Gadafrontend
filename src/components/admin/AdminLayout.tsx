@@ -10,6 +10,7 @@ import {
   Settings,
   Newspaper,
   LandPlot,
+  Landmark,
 } from "lucide-react";
 
 const nav = [
@@ -18,6 +19,7 @@ const nav = [
   { to: "/admin/settings", label: "Settings", icon: Settings },
   { to: "/admin/posts", label: "Posts", icon: Newspaper },
   { to: "/admin/representatives", label: "Representatives", icon: LandPlot },
+  { to: "/admin/banktransfers", label: "Bank Transfers", icon: Landmark },
 ];
 
 export default function AdminLayout() {

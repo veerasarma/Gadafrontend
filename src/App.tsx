@@ -29,6 +29,8 @@ import SettingsPage from "@/pages/SettingsPage";
 import ComingSoonPage from "@/pages/ComingSoonPage";
 import RepresentativePage from "@/pages/RepresentativePage";
 import PointsPage from "@/pages/PointsPage";
+import HashtagPage from '@/pages/HashtagPage';
+
 
 import { RequireAuth } from "@/components/routing/RequireAuth";
 import { RequireRole } from "@/components/routing/RequireRole";
@@ -97,6 +99,7 @@ const App = () => (
                   />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/representative" element={<RepresentativePage />} />
+                  <Route path="/hashtag/:tag" element={<HashtagPage />} />
 
                   <Route
                     path="/admin"

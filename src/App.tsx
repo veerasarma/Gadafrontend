@@ -14,7 +14,7 @@ import ActivationPage from "./pages/Activation";
 import FriendsPage from "./pages/Friends";
 import SavedPostsPage from "./pages/SavedPostsPage";
 import MemoriesPage from "./pages/MemoriesPage";
-import GroupsPage   from '@/pages/GroupsPage';
+import GroupsPage from "@/pages/GroupsPage";
 // import GroupDetailPage from '@/pages/GroupDetailPage';
 import CheckoutPage from "@/pages/CheckoutPage";
 import PaymentsPage from "@/pages/PaymentsPage";
@@ -43,6 +43,7 @@ import AdminPosts from "@/pages/admin/AdminPosts";
 
 import NotFound from "./pages/NotFound";
 import Packages from "./pages/Packages";
+import AdminRepresentatives from "./pages/admin/AdminRepresentatives";
 
 const queryClient = new QueryClient();
 
@@ -74,8 +75,8 @@ const App = () => (
                   <Route path="friends" element={<FriendsPage />} />
                   <Route path="saved" element={<SavedPostsPage />} />
                   <Route path="/memories" element={<MemoriesPage />} />
-                   <Route path="/groups" element={<GroupsPage />} />
-              {/* <Route path="/groups/:groupId" element={<GroupProvider><GroupDetailPage /></GroupProvider>} />  */}
+                  <Route path="/groups" element={<GroupsPage />} />
+                  {/* <Route path="/groups/:groupId" element={<GroupProvider><GroupDetailPage /></GroupProvider>} />  */}
                   <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/wallet" element={<PaymentsPage />} />
                   <Route path="/packages" element={<Packages />} />
@@ -100,6 +101,7 @@ const App = () => (
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/representative" element={<RepresentativePage />} />
                   <Route path="/hashtag/:tag" element={<HashtagPage />} />
+                 
 
                   <Route
                     path="/admin"
@@ -111,11 +113,19 @@ const App = () => (
                       </RequireAuth>
                     }
                   >
+                     <Route
+                    path="/representative"
+                    element={<RepresentativePage />}
+                  />
                     <Route index element={<AdminDashboard />} />
                     <Route path="users" element={<AdminUsers />} />
                     <Route path="settings" element={<AdminSettings />} />
                     <Route path="profile" element={<AdminProfilePage />} />
                     <Route path="posts" element={<AdminPosts />} />
+                    <Route
+                      path="representatives"
+                      element={<AdminRepresentatives />}
+                    />
                   </Route>
                 </Routes>
               </BrowserRouter>

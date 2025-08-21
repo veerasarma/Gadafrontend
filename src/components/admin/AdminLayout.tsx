@@ -1,15 +1,23 @@
-import { useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Navbar } from '@/components/layout/Navbar';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Gauge, Users, Settings,Newspaper } from 'lucide-react';
+import { useState } from "react";
+import { Link, Outlet, useLocation } from "react-router-dom";
+import { Navbar } from "@/components/layout/Navbar";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Menu,
+  Gauge,
+  Users,
+  Settings,
+  Newspaper,
+  LandPlot,
+} from "lucide-react";
 
 const nav = [
-  { to: '/admin', label: 'Dashboard', icon: Gauge },
-  { to: '/admin/users', label: 'Users', icon: Users },
-  { to: '/admin/settings', label: 'Settings', icon: Settings },
-  { to: '/admin/posts', label: 'Posts', icon: Newspaper },
+  { to: "/admin", label: "Dashboard", icon: Gauge },
+  { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/settings", label: "Settings", icon: Settings },
+  { to: "/admin/posts", label: "Posts", icon: Newspaper },
+  { to: "/admin/representatives", label: "Representatives", icon: LandPlot },
 ];
 
 export default function AdminLayout() {
@@ -18,12 +26,15 @@ export default function AdminLayout() {
 
   const Sidebar = (
     <nav className="p-4 space-y-2">
-      {nav.map(item => {
+      {nav.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.to;
         return (
           <Link key={item.to} to={item.to} onClick={() => setOpen(false)}>
-            <Button variant={active ? 'default' : 'ghost'} className="w-full justify-start">
+            <Button
+              variant={active ? "default" : "ghost"}
+              className="w-full justify-start"
+            >
               <Icon className="h-4 w-4 mr-2" />
               {item.label}
             </Button>
@@ -47,7 +58,11 @@ export default function AdminLayout() {
         {/* Mobile drawer */}
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden fixed top-16 left-2 z-20">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden fixed top-16 left-2 z-20"
+            >
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>

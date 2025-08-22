@@ -1,13 +1,14 @@
 // src/pages/PageCreate.tsx
 import { useRef, useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { fetchCategories, createPage } from '@/services/pagesService';
-import { useNavigate } from 'react-router-dom';
+import { fetchCategories, createPage, listMyInvites } from '@/services/pagesService';
+import { FilePlus2, Inbox } from 'lucide-react';
 
 export default function PageCreate() {
   const { accessToken } = useAuth();
@@ -16,13 +17,25 @@ export default function PageCreate() {
   useEffect(() => { headersRef.current = headers; }, [headers]);
 
   const nav = useNavigate();
+
+  // Sidebar data
   const [cats, setCats] = useState<any[]>([]);
-  const [form, setForm] = useState({ page_name:'', page_title:'', page_category:'', page_country:'', page_description:'' });
+  const [invCount, setInvCount] = useState(0);
+
+  // Form state
+  const [form, setForm] = useState({
+    page_name: '',
+    page_title: '',
+    page_category: '',
+    page_country: '',
+    page_description: ''
+  });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!accessToken) return;
     fetchCategories(headersRef.current).then(setCats).catch(console.error);
+    listMyInvites(headersRef.current).then(arr => setInvCount(arr.length)).catch(() => {});
   }, [accessToken]);
 
   const onSubmit = async () => {
@@ -30,7 +43,14 @@ export default function PageCreate() {
     if (busy) return;
     setBusy(true);
     try {
-      await createPage({ ...form, page_category: Number(form.page_category), page_country: Number(form.page_country) }, headersRef.current);
+      await createPage(
+        {
+          ...form,
+          page_category: Number(form.page_category),
+          page_country: Number(form.page_country)
+        },
+        headersRef.current
+      );
       nav(`/pages/${form.page_name}`);
     } catch (e) {
       console.error(e);
@@ -40,21 +60,118 @@ export default function PageCreate() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-cus">
       <Navbar />
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
-        <div className="bg-white rounded-lg shadow p-4 space-y-3">
-          <div className="text-xl font-semibold">Create a Page</div>
-          <Input placeholder="Username (handle)" value={form.page_name} onChange={e=>setForm({...form, page_name:e.target.value})} />
-          <Input placeholder="Title" value={form.page_title} onChange={e=>setForm({...form, page_title:e.target.value})} />
-          <select className="border rounded px-2 py-2 bg-white w-full" value={form.page_category} onChange={e=>setForm({...form, page_category:e.target.value})}>
-            <option value="">Select category</option>
-            {cats.map(c => <option key={c.category_id} value={c.category_id}>{c.category_name}</option>)}
-          </select>
-          <Input placeholder="Country ID (numeric)" value={form.page_country} onChange={e=>setForm({...form, page_country:e.target.value})} />
-          <Textarea placeholder="Description" value={form.page_description} onChange={e=>setForm({...form, page_description:e.target.value})} />
-          <div className="flex justify-end"><Button onClick={onSubmit} disabled={busy}>{busy?'Creating…':'Create'}</Button></div>
-        </div>
+
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-12 gap-6">
+        {/* LEFT SIDEBAR (same as Pages index/invites) */}
+        <aside className="col-span-12 md:col-span-3">
+          <div className="md:sticky md:top-20 bg-white rounded-lg shadow p-3 space-y-2">
+            <div className="text-sm font-semibold text-gray-700 mb-1">Pages</div>
+
+            <Link
+              to="/pages"
+              className="block w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+            >
+              Discover
+            </Link>
+
+            <Link
+              to="/pages?my=1"
+              className="block w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+            >
+              Your Pages
+            </Link>
+
+            <div className="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+              <span className="flex items-center">
+                <Inbox className="h-4 w-4 mr-2" /> Invites
+              </span>
+              {invCount > 0 && (
+                <span className="text-xs bg-[#1877F2] text-white rounded-full px-2 py-0.5">
+                  {invCount}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center px-3 py-2 rounded bg-gray-50">
+              <FilePlus2 className="h-4 w-4 mr-2" /> Create Page
+            </div>
+
+            <div className="h-px bg-gray-200 my-2" />
+
+            <div className="text-xs text-gray-500 uppercase tracking-wide px-1 mb-1">
+              Categories
+            </div>
+            <div className="max-h-64 overflow-auto pr-1 space-y-1">
+              <Link
+                to="/pages"
+                className="block w-full text-left px-3 py-1.5 rounded hover:bg-gray-100"
+              >
+                All
+              </Link>
+              {cats.map((c) => (
+                <Link
+                  key={c.category_id}
+                  to={`/pages?categoryId=${c.category_id}`}
+                  className="block w-full text-left px-3 py-1.5 rounded hover:bg-gray-100"
+                >
+                  {c.category_name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        {/* RIGHT CONTENT – Create form */}
+        <main className="col-span-12 md:col-span-9">
+          <div className="bg-white rounded-lg shadow p-4 space-y-3">
+            <div className="text-xl font-semibold">Create a Page</div>
+
+            <Input
+              placeholder="Username (handle)"
+              value={form.page_name}
+              onChange={(e) => setForm({ ...form, page_name: e.target.value })}
+            />
+
+            <Input
+              placeholder="Title"
+              value={form.page_title}
+              onChange={(e) => setForm({ ...form, page_title: e.target.value })}
+            />
+
+            <select
+              className="border rounded px-2 py-2 bg-white w-full"
+              value={form.page_category}
+              onChange={(e) => setForm({ ...form, page_category: e.target.value })}
+            >
+              <option value="">Select category</option>
+              {cats.map((c) => (
+                <option key={c.category_id} value={c.category_id}>
+                  {c.category_name}
+                </option>
+              ))}
+            </select>
+
+            <Input
+              placeholder="Country ID (numeric)"
+              value={form.page_country}
+              onChange={(e) => setForm({ ...form, page_country: e.target.value })}
+            />
+
+            <Textarea
+              placeholder="Description"
+              value={form.page_description}
+              onChange={(e) => setForm({ ...form, page_description: e.target.value })}
+            />
+
+            <div className="flex justify-end">
+              <Button onClick={onSubmit} disabled={busy}>
+                {busy ? 'Creating…' : 'Create'}
+              </Button>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );

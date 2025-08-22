@@ -14,15 +14,12 @@ import ActivationPage from "./pages/Activation";
 import FriendsPage from "./pages/Friends";
 import SavedPostsPage from "./pages/SavedPostsPage";
 import MemoriesPage from "./pages/MemoriesPage";
-import GroupsPage from "@/pages/GroupsPage";
-// import GroupDetailPage from '@/pages/GroupDetailPage';
 import CheckoutPage from "@/pages/CheckoutPage";
 import PaymentsPage from "@/pages/PaymentsPage";
 import ReelsCreatePage from "@/pages/ReelsCreatePage";
 import ReelsFeedPage from "@/pages/ReelsFeedPage";
 import NotificationsPage from "@/pages/NotificationsPage";
 import PostPermalinkPage from "@/pages/PostPermalinkPage";
-// import { GroupProvider } from '@/contexts/GroupContext';
 import { ReelProvider } from "@/contexts/ReelContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import SettingsPage from "@/pages/SettingsPage";
@@ -34,6 +31,13 @@ import Messenger from '@/pages/Messenger';
 import PagesIndex from '@/pages/PagesIndex';
 import PageView from '@/pages/PageView';
 import PageCreate from '@/pages/PageCreate';
+import PagesInvites from '@/pages/PagesInvites';
+import GroupsIndex from '@/pages/GroupsIndex';
+import GroupView from '@/pages/GroupView';
+import GroupsInvites from '@/pages/GroupsInvites';
+import GroupCreate from '@/pages/GroupCreate';
+
+
 
 
 
@@ -81,8 +85,6 @@ const App = () => (
                   <Route path="friends" element={<FriendsPage />} />
                   <Route path="saved" element={<SavedPostsPage />} />
                   <Route path="/memories" element={<MemoriesPage />} />
-                  <Route path="/groups" element={<GroupsPage />} />
-                  {/* <Route path="/groups/:groupId" element={<GroupProvider><GroupDetailPage /></GroupProvider>} />  */}
                   <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/wallet" element={<PaymentsPage />} />
                   <Route path="/packages" element={<Packages />} />
@@ -111,6 +113,11 @@ const App = () => (
                   <Route path="/pages" element={<PagesIndex />} />
                   <Route path="/pages/create" element={<PageCreate />} />
                   <Route path="/pages/:handle" element={<PageView />} />
+                  <Route path="/pages/invites" element={<PagesInvites />} />
+                  <Route path="/groups" element={<GroupsIndex />} />
+                  <Route path="/groups/invites" element={<GroupsInvites />} />
+                  <Route path="/groups/create" element={<GroupCreate />} />
+                  <Route path="/groups/:handle" element={<GroupView />} />
                  
 
                   <Route
@@ -136,7 +143,7 @@ const App = () => (
                       path="representatives"
                       element={<AdminRepresentatives />}
                       />
-                      
+
                     <Route
                       path="banktransfers"
                       element={<AdminBankTransfers />}

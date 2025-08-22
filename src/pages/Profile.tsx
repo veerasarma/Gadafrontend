@@ -260,7 +260,10 @@ export default function Profile() {
             <div className="flex justify-end gap-2 pb-4">
               {summary.relationship !== 'me' && (
                 <>
-                  <Button variant="secondary">Message</Button>
+                  {/* <Button variant="secondary">Message</Button> */}
+                  <Button variant="secondary" onClick={() => navigate(`/messages?user=${summary.user.id}`)}>
+  Message
+</Button>
                   <Button className="bg-[#1877F2] hover:bg-[#166FE5]">
                     {summary.relationship === 'friends'
                       ? 'Friends'

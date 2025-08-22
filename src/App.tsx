@@ -30,6 +30,11 @@ import ComingSoonPage from "@/pages/ComingSoonPage";
 import RepresentativePage from "@/pages/RepresentativePage";
 import PointsPage from "@/pages/PointsPage";
 import HashtagPage from '@/pages/HashtagPage';
+import Messenger from '@/pages/Messenger';
+import PagesIndex from '@/pages/PagesIndex';
+import PageView from '@/pages/PageView';
+import PageCreate from '@/pages/PageCreate';
+
 
 
 import { RequireAuth } from "@/components/routing/RequireAuth";
@@ -51,7 +56,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <PostProvider>
-        <StoryProvider>
+       
           <TooltipProvider>
             <NotificationProvider>
               <Toaster
@@ -62,7 +67,7 @@ const App = () => (
               />
               <BrowserRouter>
                 <Routes>
-                  <Route path="/" element={<Feed />} />
+                  <Route path="/" element={ <StoryProvider><Feed /></StoryProvider>} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -101,6 +106,10 @@ const App = () => (
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/representative" element={<RepresentativePage />} />
                   <Route path="/hashtag/:tag" element={<HashtagPage />} />
+                  <Route path="/messages" element={<Messenger />} />
+                  <Route path="/pages" element={<PagesIndex />} />
+                  <Route path="/pages/create" element={<PageCreate />} />
+                  <Route path="/pages/:handle" element={<PageView />} />
                  
 
                   <Route
@@ -113,25 +122,24 @@ const App = () => (
                       </RequireAuth>
                     }
                   >
-                     <Route
-                    path="representative"
-                    element={<RepresentativePage />}
-                  />
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="users" element={<AdminUsers />} />
-                    <Route path="settings" element={<AdminSettings />} />
-                    <Route path="profile" element={<AdminProfilePage />} />
-                    <Route path="posts" element={<AdminPosts />} />
-                    <Route
+                      <Route
+                      path="representative"
+                      element={<RepresentativePage />}
+                      />
+                      <Route index element={<AdminDashboard />} />
+                      <Route path="users" element={<AdminUsers />} />
+                      <Route path="settings" element={<AdminSettings />} />
+                      <Route path="profile" element={<AdminProfilePage />} />
+                      <Route path="posts" element={<AdminPosts />} />
+                      <Route
                       path="representatives"
                       element={<AdminRepresentatives />}
-                    />
+                      />
                   </Route>
                 </Routes>
               </BrowserRouter>
             </NotificationProvider>
           </TooltipProvider>
-        </StoryProvider>
       </PostProvider>
     </AuthProvider>
   </QueryClientProvider>

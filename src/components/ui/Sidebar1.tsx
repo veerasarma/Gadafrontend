@@ -17,7 +17,8 @@ import {
   ChevronUp,
   CircleDollarSign,
   Wallet,
-  UserPlus
+  UserPlus,
+  MessageCircle
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -33,6 +34,7 @@ const mainItems: SidebarItem[] = [
   { name: "Scheduled", icon: Calendar, route: "/scheduled" },
   { name: "Memories", icon: Clock, route: "/memories" },
   { name: "Packages", icon: CircleDollarSign, route: "/packages" },
+  { name: "Messages", icon: MessageCircle, route: "/messages" },
 ];
 
 const mineSubmenu: SidebarItem[] = [

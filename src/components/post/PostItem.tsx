@@ -370,7 +370,15 @@ export function PostItem({ post, trackViews = true }: PostItemProps) {
 
   const postAuthor = post.author;
   // console.log(postAuthor,'postAuthorpostAuthor')
-  const isLikedByCurrentUser = user ? post?.likes?.some(l => l.userId === user.id) : false;
+  // const isLikedByCurrentUser = user ? post?.likes?.some(l => l.userId === user.id) : false;
+  const isLikedByCurrentUser =
+  !!user && (
+    post?.hasLiked === true ||
+    post?.likes?.some(l => String(l.userId) === String(user.id))
+  );
+
+
+
 
   // ---- VIEW TRACKING (IntersectionObserver + 1s dwell) ----
   const viewRef = useRef<HTMLDivElement | null>(null);
@@ -574,12 +582,14 @@ export function PostItem({ post, trackViews = true }: PostItemProps) {
         <CardFooter className="p-0">
           <div className="grid grid-cols-3 w-full">
             <Button
-              variant="ghost"
-              onClick={handleLike}
-              className={`flex items-center justify-center py-2 rounded-none ${
-                isLikedByCurrentUser ? 'text-[#1877F2]' : 'text-gray-600'
-              }`}
-            >
+             variant="ghost"
+             onClick={handleLike}
+             aria-pressed={isLikedByCurrentUser}
+             className={`flex items-center justify-center py-2 rounded-none transition-colors ${
+               isLikedByCurrentUser ? 'text-[#1877F2]' : 'text-gray-600'
+             }`}
+             title={isLikedByCurrentUser ? 'Unlike' : 'Like'}
+           >
               <ThumbsUp className={`h-5 w-5 mr-1 ${isLikedByCurrentUser ? 'fill-[#1877F2] text-[#1877F2]' : ''}`} />
               Like
             </Button>

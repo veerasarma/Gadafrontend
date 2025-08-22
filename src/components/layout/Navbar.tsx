@@ -455,11 +455,11 @@ export function Navbar() {
               <SheetContent className="flex flex-col h-screen overflow-y-auto p-6">
                 <div className="flex items-center justify-between pb-4 border-b">
                   <h2 className="text-lg font-semibold">Menu</h2>
-                  <SheetTrigger asChild>
+                  {/* <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="rounded-full">
                       <X className="h-4 w-4" />
                     </Button>
-                  </SheetTrigger>
+                  </SheetTrigger> */}
                 </div>
                 
                 {/* Mobile search */}
@@ -496,12 +496,12 @@ export function Navbar() {
                   </Link>
                   <Link to="/wallet" className="flex items-center p-2 hover:bg-gray-100 rounded-md">
                     <Wallet className="h-5 w-5 mr-3 text-[#1877F2]" />
-                    <span>Wallet</span> <span className="badge bg-light text-primary">₦{ balance.user_wallet_balance}</span>
+                    <span>Wallet <span className="badge bg-light text-primary">₦{ balance.user_wallet_balance}</span></span>
                   </Link>
 
                   <Link to="/points" className="flex items-center p-2 hover:bg-gray-100 rounded-md">
                     <Currency className="h-5 w-5 mr-3 text-[#1877F2]" />
-                    <span>Points</span> <span className="badge bg-light text-primary">{ balance.user_points}</span>
+                    <span>Points<span className="badge bg-light text-primary">{ balance.user_points}</span></span> 
                   </Link>
                   <Link to="/saved" className="flex items-center p-2 hover:bg-gray-100 rounded-md">
                     <Bookmark className="h-5 w-5 mr-3 text-[#1877F2]" />

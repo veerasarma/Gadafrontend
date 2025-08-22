@@ -49,6 +49,7 @@ import AdminPosts from "@/pages/admin/AdminPosts";
 import NotFound from "./pages/NotFound";
 import Packages from "./pages/Packages";
 import AdminRepresentatives from "./pages/admin/AdminRepresentatives";
+import AdminBankTransfers from "./pages/admin/AdminBankTransfers";
 
 const queryClient = new QueryClient();
 
@@ -135,6 +136,11 @@ const App = () => (
                       path="representatives"
                       element={<AdminRepresentatives />}
                       />
+                      
+                    <Route
+                      path="banktransfers"
+                      element={<AdminBankTransfers />}
+                    />
                   </Route>
                 </Routes>
               </BrowserRouter>

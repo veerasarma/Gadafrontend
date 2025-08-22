@@ -1,6 +1,18 @@
 const API_BASE_URL: string =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8085";
 
+type PackageResponse = {
+  status: boolean;
+  data: any[]; // packages
+  walletBalance: number;
+  activePlan: {
+    payment_id: number;
+    package_name: string;
+    package_price: number;
+    payment_date: string;
+  } | null;
+};
+
 export async function handle<T>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok)
@@ -13,7 +25,8 @@ export async function fetchPackages(headers: Record<string, string> = {}) {
     headers,
     credentials: "include",
   });
-  return handle<{ data: any[] }>(res); // Now TS knows 'data' exists
+  return handle<PackageResponse>(res);
+  // return handle<{ data: any[] }>(res); // Now TS knows 'data' exists
 }
 
 export async function buyPackage(

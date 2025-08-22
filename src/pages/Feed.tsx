@@ -1,15 +1,15 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { usePost } from '@/contexts/PostContext';
-import { initializeStorage } from '@/lib/mock-data';
-import { CreatePost } from '@/components/post/CreatePost';
-import { PostItem } from '@/components/post/PostItem';
-import { Navbar } from '@/components/layout/Navbar';
-import Sidebar from '@/components/ui/Sidebar1';
-import RightSidebar from '@/components/ui/RightSidebar';
-import Stories from '@/components/ui/Stories';
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePost } from "@/contexts/PostContext";
+import { initializeStorage } from "@/lib/mock-data";
+import { CreatePost } from "@/components/post/CreatePost";
+import { PostItem } from "@/components/post/PostItem";
+import { Navbar } from "@/components/layout/Navbar";
+import Sidebar from "@/components/ui/Sidebar1";
+import RightSidebar from "@/components/ui/RightSidebar";
+import Stories from "@/components/ui/Stories";
 
 export default function FeedPage() {
   const { accessToken, isLoading: authLoading } = useAuth();
@@ -18,7 +18,7 @@ export default function FeedPage() {
 
   useEffect(() => initializeStorage(), []);
   useEffect(() => {
-    if (!authLoading && !accessToken) navigate('/login');
+    if (!authLoading && !accessToken) navigate("/login");
   }, [authLoading, accessToken, navigate]);
 
   if (authLoading || postsLoading) {
@@ -36,10 +36,11 @@ export default function FeedPage() {
       {/* three-column layout */}
       <div className="flex flex-1 overflow-hidden px-4 lg:px-8">
         <div className="flex flex-1 max-w-[1600px] w-full mx-auto space-x-6">
-
           {/* LEFT SIDEBAR */}
           <aside className="hidden lg:block lg:w-1/5 min-h-0 overflow-y-auto py-6">
-            <div className="sticky top-16">   {/* pins under 64px navbar */}
+            <div className="sticky top-16">
+              {" "}
+              {/* pins under 64px navbar */}
               <Sidebar />
             </div>
           </aside>
@@ -57,14 +58,15 @@ export default function FeedPage() {
               </div>
 
               {posts.length > 0 ? (
-                posts.map(post => (
-                  <PostItem key={post.id} post={post} />
-                ))
+                posts.map((post) => <PostItem key={post.id} post={post} />)
               ) : (
                 <div className="bg-white rounded-lg shadow p-6 text-center">
-                  <h3 className="text-xl font-semibold text-gray-700">No posts yet</h3>
+                  <h3 className="text-xl font-semibold text-gray-700">
+                    No posts yet
+                  </h3>
                   <p className="text-gray-500 mt-2">
-                    Create your first post or follow friends to see their posts here.
+                    Create your first post or follow friends to see their posts
+                    here.
                   </p>
                 </div>
               )}
@@ -73,9 +75,8 @@ export default function FeedPage() {
 
           {/* RIGHT WIDGETS */}
           <aside className="hidden xl:block xl:w-96 min-h-0 overflow-y-auto pt-6">
-           <RightSidebar/>
+            <RightSidebar />
           </aside>
-
         </div>
       </div>
     </div>

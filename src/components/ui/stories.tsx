@@ -1,12 +1,12 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useStories, Story } from '@/contexts/StoryContext';
-import { Camera } from 'lucide-react';
-import { StoryViewer } from './StoryViewer';
-import { stripUploads } from '@/lib/url';
+import React, { useRef, useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useStories, Story } from "@/contexts/StoryContext";
+import { Camera } from "lucide-react";
+import { StoryViewer } from "./StoryViewer";
+import { stripUploads } from "@/lib/url";
 
 const API_BASE_URL: string =
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8085';
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8085";
 
 const Stories: React.FC = () => {
   const { user } = useAuth();
@@ -26,7 +26,7 @@ const Stories: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) addStory(file);
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const handleBubbleClick = (index: number) => {
@@ -38,8 +38,8 @@ const Stories: React.FC = () => {
   // - 'finished'  → autoplay finished current group → open next user (start at 0)
   // - 'user'      → user clicked close/Esc         → close viewer
   // - 'prevGroup' → user pressed Prev at first item → open previous user (start at last item)
-  const handleCloseViewer = (reason: 'finished' | 'user' | 'prevGroup') => {
-    if (reason === 'finished') {
+  const handleCloseViewer = (reason: "finished" | "user" | "prevGroup") => {
+    if (reason === "finished") {
       setViewerIndex((i) => {
         if (i == null) return i;
         const next = i + 1;
@@ -50,13 +50,14 @@ const Stories: React.FC = () => {
       return;
     }
 
-    if (reason === 'prevGroup') {
+    if (reason === "prevGroup") {
       setViewerIndex((i) => {
         if (i == null) return i;
         const prev = i - 1;
         if (prev < 0) return null; // or loop: return stories.length - 1
-        const lastIdx =
-          stories[prev]?.stories?.length ? stories[prev].stories.length - 1 : 0;
+        const lastIdx = stories[prev]?.stories?.length
+          ? stories[prev].stories.length - 1
+          : 0;
         setViewerInitialIndex(lastIdx);
         return prev;
       });
@@ -86,7 +87,9 @@ const Stories: React.FC = () => {
             >
               {user.profileImage ? (
                 <img
-                  src={API_BASE_URL + '/uploads/' + stripUploads(user.profileImage)}
+                  src={
+                    API_BASE_URL + "/uploads/" + stripUploads(user.profileImage)
+                  }
                   alt="Your story"
                   className="w-full h-full object-cover"
                 />
@@ -99,7 +102,9 @@ const Stories: React.FC = () => {
                 <Camera className="h-4 w-4 text-purple-500" />
               </div>
             </div>
-            <span className="mt-1 block text-xs text-gray-700 truncate w-16">Your Story</span>
+            <span className="mt-1 block text-xs text-gray-700 truncate w-16">
+              Your Story
+            </span>
 
             <input
               type="file"
@@ -122,13 +127,18 @@ const Stories: React.FC = () => {
               <img
                 src={
                   API_BASE_URL +
-                  '/uploads/' +
-                  stripUploads(group.avatar !== '' ? group.avatar : '/profile/defaultavatar.png')
+                  "/uploads/" +
+                  stripUploads(
+                    group.avatar !== ""
+                      ? group.avatar
+                      : "/profile/defaultavatar.png"
+                  )
                 }
                 alt={group.username}
                 onError={(e) => {
                   e.currentTarget.onerror = null;
-                  e.currentTarget.src = API_BASE_URL + '/uploads//profile/defaultavatar.png';
+                  e.currentTarget.src =
+                    API_BASE_URL + "/uploads//profile/defaultavatar.png";
                 }}
                 className="w-full h-full object-cover"
               />
@@ -143,7 +153,9 @@ const Stories: React.FC = () => {
       {/* Story viewer modal */}
       {viewerGroup && (
         <StoryViewer
-          key={`${stories[viewerIndex!]?.userId ?? viewerIndex}-${viewerInitialIndex}`} // force remount per group & starting slide
+          key={`${
+            stories[viewerIndex!]?.userId ?? viewerIndex
+          }-${viewerInitialIndex}`} // force remount per group & starting slide
           group={viewerGroup}
           initialIndex={viewerInitialIndex}
           onClose={handleCloseViewer}

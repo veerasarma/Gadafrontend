@@ -21,14 +21,23 @@ export default function Packages() {
   const { accessToken } = useAuth();
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [buyingId, setBuyingId] = useState<number | null>(null);
+    const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [activePlan, setActivePlan] = useState<any | null>(null);
+  
+    useEffect(() => {
+      getPackages();
+    }, [accessToken]);
 
-  useEffect(() => {
+  const getPackages = async () => {
     if (!accessToken) return; // Wait until token is available
     setLoading(true); // start loading before request
     fetchPackages({ Authorization: `Bearer ${accessToken}` })
       .then((res) => {
         console.log("Packages API response:", res);
         setPackages(res?.data || []); // ensures it's an array
+        setWalletBalance(res?.walletBalance || 0);
+        setActivePlan(res?.activePlan || null);
       })
       .catch((err) => {
         console.error("Error fetching packages:", err);
@@ -36,9 +45,11 @@ export default function Packages() {
       .finally(() => {
         setLoading(false);
       });
-  }, [accessToken]);
+  };
 
   const handleBuy = async (pkg: any) => {
+    if (buyingId) return; // prevent spamming
+    setBuyingId(pkg.package_id);
     try {
       const data = await buyPackage(
         accessToken!,
@@ -49,14 +60,17 @@ export default function Packages() {
       if (data.status) {
         console.log(data.message);
         toast.success("Purchase successfull!");
+        getPackages();
       } else {
         toast.error(data.message);
         console.log(data.message || "Purchase failed");
       }
     } catch (err) {
       toast.error("Something went wrong while purchasing.");
-      console.error(err);
+      // console.error(err);
       console.log("Something went wrong while purchasing.");
+    } finally {
+      setBuyingId(null); // reset loader
     }
   };
 
@@ -91,7 +105,8 @@ export default function Packages() {
                 Pro Packages
               </h1>
               <p className="text-lg text-white/80">
-                Choose the Plan That's Right for You
+                Choose the Plan That's Right for You{" "}
+                <strong>( Available Balance : {walletBalance} )</strong>
               </p>
             </div>
             {/* Cards Container */}
@@ -155,9 +170,31 @@ export default function Packages() {
                       //   }
                       // }}
                       onClick={() => handleBuy(pkg)}
-                      className="bg-red-500 w-full text-white rounded-full px-6 py-2 hover:bg-red-600 transition"
+                      // disabled={buyingId === pkg.package_id}
+                      disabled={
+                        buyingId === pkg.package_id ||
+                        activePlan?.package_name === "GADA VVIP" || // If user has VVIP → disable all
+                        (activePlan?.package_name === "GADA VIP" &&
+                          pkg.name === "GADA VIP") // If user has VIP → disable only VIP
+                      }
+                      className={`w-full rounded-full px-6 py-2 transition
+    ${
+      buyingId === pkg.package_id ||
+      activePlan?.package_name === "GADA VVIP" ||
+      (activePlan?.package_name === "GADA VIP" && pkg.name === "GADA VIP")
+        ? "bg-gray-400 cursor-not-allowed"
+        : "bg-red-500 text-white hover:bg-red-600"
+    }`}
+                      // className="bg-red-500 w-full text-white rounded-full px-6 py-2 hover:bg-red-600 transition"
                     >
-                      Buy Now
+                      {buyingId === pkg.package_id
+                        ? "Processing..."
+                        : activePlan?.package_name === pkg.name
+                        ? "Purchased"
+                        : activePlan?.package_name === "GADA VVIP" &&
+                          pkg.name === "GADA VIP"
+                        ? "Unavailable"
+                        : "Buy Now"}
                     </button>
                   </div>
                 ))}

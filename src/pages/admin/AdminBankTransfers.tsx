@@ -142,7 +142,7 @@ export default function AdminBankTransfers() {
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-2 md:items-center justify-between mb-4">
         <div className="flex flex-col sm:flex-row gap-2">
-          <Select
+          {/* <Select
             value={status}
             onValueChange={(v) => {
               setPage(1);
@@ -158,7 +158,7 @@ export default function AdminBankTransfers() {
               <SelectItem value="-1">Failed</SelectItem>
               <SelectItem value="0">Pending</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
 
           <Input
             placeholder="Search by user / handle"
@@ -208,7 +208,7 @@ export default function AdminBankTransfers() {
               <TableHead>ID</TableHead>
               <TableHead>User</TableHead>
               <TableHead>Handle</TableHead>
-              <TableHead>Package</TableHead>
+              {/* <TableHead>Package</TableHead> */}
               <TableHead>Price</TableHead>
               <TableHead>Receipt</TableHead>
               <TableHead>Time</TableHead>
@@ -217,70 +217,66 @@ export default function AdminBankTransfers() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.transfer_id}>
-                <TableCell>{r.transfer_id}</TableCell>
-                <TableCell>{r.user_name}</TableCell>
-                <TableCell>{r.handle}</TableCell>
-                <TableCell>{r.package_id ?? "---"}</TableCell>
-                <TableCell>{r.price ?? "---"}</TableCell>
-                <TableCell>
-                  {r.bank_receipt ? (
-                    <a
-                      href={`${API_BASE_URL}/uploads/${r.bank_receipt}`}
-                      target="_blank"
-                      className="text-blue-500 underline"
+            {rows.length > 0 ? (
+              rows.map((r) => (
+                <TableRow key={r.transfer_id}>
+                  <TableCell>{r.transfer_id}</TableCell>
+                  <TableCell>{r.user_name}</TableCell>
+                  <TableCell>{r.handle}</TableCell>
+                  {/* <TableCell>{r.package_id ?? "---"}</TableCell> */}
+                  <TableCell>{r.price ?? "---"}</TableCell>
+                  <TableCell>
+                    {r.bank_receipt ? (
+                      <a
+                        href={`${API_BASE_URL}/uploads/${r.bank_receipt}`}
+                        target="_blank"
+                        className="text-blue-500 underline"
+                      >
+                        View
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                  <TableCell>{new Date(r.time).toLocaleString()}</TableCell>
+                  <TableCell>
+                    {r.status === 1
+                      ? "Success"
+                      : r.status === -1
+                      ? "Failed"
+                      : "Pending"}
+                  </TableCell>
+                  <TableCell className="text-right space-x-2">
+                    <Button
+                      size="sm"
+                      onClick={() => act(r.transfer_id, "accept")}
                     >
-                      View
-                    </a>
-                  ) : (
-                    "-"
-                  )}
-                </TableCell>
-                <TableCell>{new Date(r.time).toLocaleString()}</TableCell>
-                <TableCell>
-                  {r.status === 1
-                    ? "Success"
-                    : r.status === -1
-                    ? "Failed"
-                    : "Pending"}
-                </TableCell>
-                <TableCell className="text-right space-x-2">
-                  {r.status === 0 ? (
-                    <>
-                      <Button
-                        size="sm"
-                        onClick={() => act(r.transfer_id, "accept")}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => act(r.transfer_id, "decline")}
-                      >
-                        Reject
-                      </Button>
-                    </>
-                  ) : (
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => act(r.transfer_id, "decline")}
+                    >
+                      Reject
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => act(r.transfer_id, "pending")}
+                      onClick={() => setSelected(r)}
                     >
-                      Reset to Pending
+                      View
                     </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelected(r)}
-                  >
-                    View
-                  </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center text-gray-500">
+                  No data available
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>
@@ -366,9 +362,9 @@ export default function AdminBankTransfers() {
               <div>
                 <strong>Handle:</strong> {selected.handle}
               </div>
-              <div>
+              {/* <div>
                 <strong>Package:</strong> {selected.package_id ?? "---"}
-              </div>
+              </div> */}
               <div>
                 <strong>Price:</strong> {selected.price ?? "---"}
               </div>

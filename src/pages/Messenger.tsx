@@ -241,7 +241,7 @@ export default function Messenger() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-cus">
       <Navbar />
       <div className="max-w-6xl mx-auto px-2 sm:px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Left: conversations */}

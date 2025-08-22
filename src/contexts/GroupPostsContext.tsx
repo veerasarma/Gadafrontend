@@ -4,7 +4,7 @@ import {
     createGroupPost,
     toggleLikeGroupPost,
     addGroupPostComment
-  } from '@/services/groupService';
+  } from '@/services/groupsService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthHeader,useAuthHeaderupload } from '@/hooks/useAuthHeader';
 

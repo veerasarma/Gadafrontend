@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useAuthHeader } from '@/hooks/useAuthHeader';
-import { GroupAPI } from '@/services/groupService';
+import { GroupAPI } from '@/services/groupsService';
 
 type GroupCtx = {
   myGroups: any[];

@@ -15,6 +15,7 @@ import {
   listPageInvites, inviteUserToPage, suggestUsers,
   fetchCategories, listMyInvites, // NEW: for sidebar
 } from '@/services/pagesService';
+import { stripUploads } from '@/lib/url';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8085';
 
@@ -153,12 +154,20 @@ export default function PageView() {
     return () => clearTimeout(t);
   }, [query, inviteOpen]);
 
+  function removeByUserIdInPlace(list, userId) {
+    const idStr = String(userId);
+    const i = list.findIndex(item => String(item.id) === idStr);
+    if (i !== -1) list.splice(i, 1);
+  }
+
   const sendInvite = async (userId: number) => {
     setInviteBusy(userId);
     try {
       await inviteUserToPage(handle!, userId, headersRef.current);
-      setQuery('');
-      setSuggest([]);
+      removeByUserIdInPlace(suggest, userId)
+    //   setQuery('');
+    //   setSuggest([]);
+    
       await listPageInvites(handle!, headersRef.current).then(setInvites);
     } catch (e) {
       console.error(e);
@@ -306,7 +315,7 @@ export default function PageView() {
                         <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-200">
                           {a.avatar && (
                             <img
-                              src={`${API_BASE_URL}/uploads/${a.avatar}`}
+                              src={`${API_BASE_URL}/uploads/${stripUploads(a.avatar)}`}
                               className="w-full h-full object-cover"
                             />
                           )}
@@ -381,7 +390,7 @@ export default function PageView() {
                             <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-200">
                               {u.avatar && (
                                 <img
-                                  src={`${API_BASE_URL}/uploads/${u.avatar}`}
+                                  src={`${API_BASE_URL}/uploads/${stripUploads(u.avatar)}`}
                                   className="w-full h-full object-cover"
                                 />
                               )}

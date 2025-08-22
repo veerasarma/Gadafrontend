@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, FilePlus2, Inbox } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import PagesSidebar from '@/components/pages/pagesSidebar';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8085';
 
@@ -79,46 +80,7 @@ export default function PagesIndex() {
       <div className="max-w-8xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-12 gap-6">
         {/* LEFT SIDEBAR */}
         <aside className="col-span-12 md:col-span-3">
-          <div className="md:sticky md:top-20 bg-white rounded-lg shadow p-3 space-y-2">
-            <div className="text-sm font-semibold text-gray-700 mb-1">Pages</div>
-            <button
-              onClick={() => nav('/pages')}
-              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${!my ? 'bg-gray-50' : ''}`}
-            >
-              Discover
-            </button>
-            <button
-              onClick={() => setSearchParams({ ...(q?{q}:{}) , ...(categoryId?{categoryId:String(categoryId)}:{}), ...(sort!=='popular'?{sort}:{}) , my:'1' })}
-              className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${my ? 'bg-gray-50' : ''}`}
-            >
-              Your Pages
-            </button>
-            <Link to="/pages/invites" className="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
-              <span className="flex items-center"><Inbox className="h-4 w-4 mr-2" /> Invites</span>
-              {invCount > 0 && <span className="text-xs bg-[#1877F2] text-white rounded-full px-2 py-0.5">{invCount}</span>}
-            </Link>
-            <Link to="/pages/create" className="flex items-center px-3 py-2 rounded hover:bg-gray-100">
-              <FilePlus2 className="h-4 w-4 mr-2" /> Create Page
-            </Link>
-
-            <div className="h-px bg-gray-200 my-2" />
-            <div className="text-xs text-gray-500 uppercase tracking-wide px-1 mb-1">Categories</div>
-            <div className="max-h-64 overflow-auto pr-1 space-y-1">
-              <button
-                onClick={() => setCategoryId('')}
-                className={`w-full text-left px-3 py-1.5 rounded hover:bg-gray-100 ${categoryId === '' ? 'bg-gray-50' : ''}`}
-              >All</button>
-              {cats.map(c => (
-                <button
-                  key={c.category_id}
-                  onClick={() => setCategoryId(Number(c.category_id))}
-                  className={`w-full text-left px-3 py-1.5 rounded hover:bg-gray-100 ${categoryId === c.category_id ? 'bg-gray-50' : ''}`}
-                >
-                  {c.category_name}
-                </button>
-              ))}
-            </div>
-          </div>
+         <PagesSidebar/>
         </aside>
 
         {/* RIGHT CONTENT */}

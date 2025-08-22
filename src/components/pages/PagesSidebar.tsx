@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Inbox, FilePlus2 } from 'lucide-react';
+import { Inbox, FilePlus2,Search,Flag } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { fetchCategories, listMyInvites } from '@/services/pagesService';
@@ -49,12 +49,11 @@ export default function PagesSidebar({
     <div className="md:sticky md:top-20 bg-white rounded-lg shadow p-3 space-y-2">
       <div className="text-sm font-semibold text-gray-700 mb-1">Pages</div>
 
-      <Link to="/pages" className={`block w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${active('discover')}`}>
-        Discover
+      <Link to="/pages" className={`flex items-center px-3 py-2 rounded hover:bg-gray-100 ${active('create')}`}>
+        <Search className="h-4 w-4 mr-2" /> Discover
       </Link>
-
-      <Link to="/pages?my=1" className={`block w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${active('my')}`}>
-        Your Pages
+      <Link to="/pages?my=1" className={`flex items-center px-3 py-2 rounded hover:bg-gray-100 ${active('create')}`}>
+        <Flag className="h-4 w-4 mr-2" /> Your Pages
       </Link>
 
       <Link to="/pages/invites" className={`flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100 ${active('invites')}`}>

@@ -36,6 +36,10 @@ import GroupsIndex from '@/pages/GroupsIndex';
 import GroupView from '@/pages/GroupView';
 import GroupsInvites from '@/pages/GroupsInvites';
 import GroupCreate from '@/pages/GroupCreate';
+import EventsIndex from '@/pages/EventsIndex';
+import EventCreate from '@/pages/EventCreate';
+import EventsInvites from '@/pages/EventsInvites';
+import EventView from '@/pages/EventView';
 
 
 
@@ -118,6 +122,10 @@ const App = () => (
                   <Route path="/groups/invites" element={<GroupsInvites />} />
                   <Route path="/groups/create" element={<GroupCreate />} />
                   <Route path="/groups/:handle" element={<GroupView />} />
+                  <Route path="/events" element={<EventsIndex />} />
+                  <Route path="/events/create" element={<EventCreate />} />
+                  <Route path="/events/invites" element={<EventsInvites />} />
+                  <Route path="/events/:id" element={<EventView />} />
                  
 
                   <Route

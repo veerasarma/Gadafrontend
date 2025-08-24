@@ -12,6 +12,7 @@ export interface User {
   createdAt: string;
   walletBalance:string;
   roles?: string[];
+  packageactive:boolean;
 }
 
 export interface Post {

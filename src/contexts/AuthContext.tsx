@@ -92,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         friends: [],
         walletBalance: user.user_wallet_balance,
         roles: user.role,
+        packageactive:user.packageactive,
       };
       setUser(userdata);
       setAccessToken(token);

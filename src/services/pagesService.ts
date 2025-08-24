@@ -98,3 +98,23 @@ export function declineInvite(idOrName: string | number, inviteId: number, heade
     method: 'POST', credentials: 'include', headers
   }).then(r => { if (!r.ok) throw new Error('Failed to decline'); return r.json(); });
 }
+
+export function togglePageBoost(idOrHandle: string | number, enable: boolean, headers: Record<string,string>) {
+  return fetch(api(`/${encodeURIComponent(String(idOrHandle))}/boost`), {
+    method: enable ? 'POST' : 'DELETE', credentials: 'include', headers
+  }).then(r => { if (!r.ok) throw new Error('Failed to decline'); return r.json(); });
+}
+
+// export async function togglePageBoost(idOrHandle: string | number, enable: boolean, headers: Record<string,string>) {
+//   const url = `${API}/pages/${encodeURIComponent(String(idOrHandle))}/boost`;
+//   const r = await fetch(url, {
+//     method: enable ? 'POST' : 'DELETE',
+//     headers: { 'Content-Type': 'application/json', ...headers },
+//   });
+//   if (!r.ok) {
+//     const err = await r.json().catch(()=> ({}));
+//     throw new Error(err?.error || 'Boost error');
+//   }
+//   return r.json(); // { boosted: boolean }
+// }
+

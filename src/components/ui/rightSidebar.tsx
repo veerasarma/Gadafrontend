@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthHeader } from '@/hooks/useAuthHeader';
-import { fetchProUsers, type ProUser, fetchTrendingTags, type TrendingTagRow } from '@/services/proService';
-import { fetchFriendSuggestions, type User as FriendUser } from '@/services/friendService';
+import { fetchProUsers, type ProUser, fetchTrendingTags,fetchUserpackage,fetchProPages, type TrendingTagRow } from '@/services/proService';
+import { fetchFriendSuggestions, type User as FriendUser,sendFriendRequest } from '@/services/friendService';
 import { stripUploads } from '@/lib/url';
-import { useNavigate } from "react-router-dom";
+import { useNavigate,Link } from "react-router-dom";
+import { toast } from 'sonner';
+
 
 
 type ProItem = { id: string | number; name: string; avatar: string };
@@ -46,8 +48,14 @@ function SectionShell({ children, className }: React.PropsWithChildren<{ classNa
 }
 
 function HorizontalChips({
-  items, title, cta, onCta,
-}: { items: ProItem[]; title: string; cta?: string; onCta?: () => void; }) {
+  items, title, cta, onCta, onItemClick,
+}: {
+  items: ProItem[];
+  title: string;
+  cta?: string;
+  onCta?: () => void;
+  onItemClick?: (item: ProItem) => void;   // ⬅️ NEW
+}) {
   return (
     <SectionShell className="p-5">
       <div className="flex items-center justify-between mb-4">
@@ -61,14 +69,21 @@ function HorizontalChips({
           </button>
         )}
       </div>
+
       <div className="flex gap-5 overflow-x-auto pb-1 hide-scrollbar">
         {items.map(item => (
-          <div key={item.id} className="min-w-[84px] flex flex-col items-center">
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onItemClick?.(item)}        // ⬅️ only clickable if handler provided
+            className="min-w-[84px] flex flex-col items-center focus:outline-none"
+            aria-label={`Open ${item.name}`}
+          >
             <div className="h-20 w-20 rounded-full shadow ring-2 ring-white overflow-hidden">
               <img src={item.avatar} alt={item.name} className="h-full w-full object-cover" />
             </div>
             <div className="mt-2 text-center text-sm font-medium text-gray-900 line-clamp-1">{item.name}</div>
-          </div>
+          </button>
         ))}
       </div>
     </SectionShell>
@@ -76,23 +91,49 @@ function HorizontalChips({
 }
 
 function TrendingCard({ tags }: { tags: Tag[] }) {
+  if (!Array.isArray(tags) || tags.length === 0) {
+    return (
+      <div className="rounded-2xl p-5 bg-gradient-to-tr from-pink-500 to-rose-500 text-white shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <TrendingUp className="h-5 w-5" />
+          <h3 className="text-base font-semibold">Trending</h3>
+        </div>
+        <div className="text-white/90 text-sm">No trends right now</div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-2xl p-5 bg-gradient-to-tr from-pink-500 to-rose-500 text-white shadow-sm">
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp className="h-5 w-5" />
         <h3 className="text-base font-semibold">Trending</h3>
       </div>
-      <ul className="space-y-4">
-        {tags.map(t => (
-          <li key={t.tag} className="flex items-center justify-between">
-            <div className="text-lg font-semibold">{t.tag}</div>
-            <div className="text-sm/5 opacity-90">{t.count} Posts</div>
-          </li>
-        ))}
+
+      <ul className="space-y-2">
+        {tags.map((t) => {
+          const name = (t.tag || '').replace(/^#/, '');           // display/input safety
+          const to = `/hashtag/${encodeURIComponent(name)}`;       // e.g. /hashtag/Gada
+          return (
+            <li key={t.tag}>
+              <Link
+                to={to}
+                title={`Open #${name}`}
+                className="flex items-center justify-between rounded-md px-2 py-2
+                           hover:bg-white/10 focus:bg-white/10 focus:outline-none
+                           transition-colors"
+              >
+                <div className="text-lg font-semibold">#{name}</div>
+                <div className="text-sm/5 opacity-90">{t.count} Posts</div>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
 }
+
 
 function SuggestionsCard({
   list, onAdd, onSeeAll,
@@ -158,11 +199,36 @@ export default function RightSidebar({
   const { accessToken } = useAuth();
   const headers = useAuthHeader(accessToken);
   const navigate = useNavigate();
+  const headersRef = React.useRef(headers);
+  React.useEffect(() => { headersRef.current = headers; }, [headers]);
+  
 
 
   const [proUsers, setProUsers] = React.useState<ProItem[]>(sampleUsers);
   const [suggestions, setSuggestions] = React.useState<FriendUser[]>([]);
   const [tags, setTags] = React.useState<Tag[]>(sampleTags);
+  const [userPackage, setUserPacakge] = React.useState<Boolean>(false);
+  const ctaProps = userPackage ? {} : { cta: "Upgrade", onCta: () => navigate("/packages") };
+  const [proPages, setProPages] = React.useState<ProItem[]>(samplePages);
+
+  const handleAddFriend = async (id: string | number) => {
+    const idStr = String(id);
+    try {
+      // 1) call API
+      await sendFriendRequest(id, headersRef.current);
+  ``
+      // 2) remove from UI list
+      setSuggestions(prev =>
+        prev.filter(u => String((u as any).id ?? (u as any).user_id) !== idStr)
+      );
+      toast.success('Your request has been sent successfully.');
+    } catch (e) {
+      console.error('Failed to send friend request', e);
+      toast.error('Failed to send friend request', e);
+      // optionally show a toast
+    }
+  };
+
 
   // guard to avoid multiple calls on re-renders
   const loadedRef = React.useRef(false);
@@ -191,6 +257,34 @@ export default function RightSidebar({
         );
       } catch (e) {
         console.error('[RightSidebar] failed to load pro users', e);
+      }
+    })();
+
+    (async () => {
+      try {
+        const list = await fetchUserpackage(headers);
+        console.log(list,'listlist')
+        if (!alive) return;
+        setUserPacakge(list?.data?.active)
+      } catch (e) {
+        console.error('[RightSidebar] failed to load pro users', e);
+      }
+    })();
+
+    (async () => {
+      try {
+        const list = await fetchProPages(headers, 12);
+        if (!alive) return;
+        const base = `${API_BASE_URL}`.replace(/\/+$/, '');
+        setProPages(
+          list.map(p => ({
+            id: p.id,
+            name: p.name,
+            avatar: `${base}${p.avatar}`, // p.avatar already has "/uploads/..."
+          }))
+        );
+      } catch (e) {
+        console.error('[RightSidebar] failed to load pro pages', e);
       }
     })();
 
@@ -227,14 +321,17 @@ export default function RightSidebar({
 
   return (
     <div className="sticky top-20 space-y-6">
-      <HorizontalChips items={proUsers} title="Pro Users" cta="Upgrade" onCta={() => navigate("/packages")} />
-      <HorizontalChips items={samplePages} title="Pro Pages" cta="Upgrade" onCta={() => navigate("/packages")} />
+      <HorizontalChips items={proUsers}   title="Pro Users"  {...ctaProps} onItemClick={(item) => navigate(`/pages/${item.id}`)}/>
+      <HorizontalChips items={proPages /* or samplePages if you haven't wired dynamic yet */} title="Pro Pages"
+      {...ctaProps} onItemClick={(item) => navigate(`/pages/${item.id}`)}   // ⬅️ open view
+      />
+
       <TrendingCard tags={tags} />
       <SectionShell className="p-5">
         <h3 className="text-lg font-semibold">Gadashares</h3>
         <div className="mt-2 h-14 rounded-xl bg-gray-50" />
       </SectionShell>
-      <SuggestionsCard list={suggestions} onAdd={onAddFriend} onSeeAll={() => navigate("/friends")} />
+      <SuggestionsCard list={suggestions} onAdd={handleAddFriend} onSeeAll={() => navigate("/friends")} />
     </div>
   );
 }

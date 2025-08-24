@@ -5,7 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { Button } from '@/components/ui/button';
-import { Loader2, ThumbsUp, UserPlus, X, FilePlus2, Inbox } from 'lucide-react';
+import { Loader2, ThumbsUp, UserPlus, X, Rocket } from 'lucide-react';
 import { PostItem } from '@/components/post/PostItem';
 import { Textarea } from '@/components/ui/textarea';
 import PagesSidebar from '@/components/pages/pagesSidebar';
@@ -13,9 +13,11 @@ import {
   getPage, togglePageLike, fetchPagePosts, createPagePost,
   updatePageCover, updatePagePicture,
   listPageInvites, inviteUserToPage, suggestUsers,
-  fetchCategories, listMyInvites, // NEW: for sidebar
+  fetchCategories, listMyInvites,
+  togglePageBoost,            // ⬅️ NEW
 } from '@/services/pagesService';
 import { stripUploads } from '@/lib/url';
+import { toast } from 'sonner';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8085';
 
@@ -26,16 +28,16 @@ export default function PageView() {
   const headersRef = useRef(headers);
   useEffect(() => { headersRef.current = headers; }, [headers]);
 
-  // Sidebar (same as Pages index)
+  // Sidebar
   const [cats, setCats] = useState<any[]>([]);
   const [invCount, setInvCount] = useState(0);
 
-  // Summary / like
+  // Summary / like / boost
   const [summary, setSummary] = useState<any|null>(null);
   const [loading, setLoading] = useState(true);
   const [likeBusy, setLikeBusy] = useState(false);
 
-  // Posts
+  // posts
   const [posts, setPosts] = useState<any[] | null>(null);
   const [cursor, setCursor] = useState<string | null>(null);
   const [pLoading, setPLoading] = useState(false);
@@ -44,9 +46,10 @@ export default function PageView() {
   const isAdmin =
     !!summary?.admins?.some((a:any) => String(a.id) === String(user?.id)) ||
     (summary?.page?.adminId === user?.id);
+
   const [content, setContent] = useState('');
 
-  // Admin invites modal
+  // invites
   const [invites, setInvites] = useState<any[]|null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -154,7 +157,7 @@ export default function PageView() {
     return () => clearTimeout(t);
   }, [query, inviteOpen]);
 
-  function removeByUserIdInPlace(list, userId) {
+  function removeByUserIdInPlace(list:any[], userId:number) {
     const idStr = String(userId);
     const i = list.findIndex(item => String(item.id) === idStr);
     if (i !== -1) list.splice(i, 1);
@@ -165,9 +168,6 @@ export default function PageView() {
     try {
       await inviteUserToPage(handle!, userId, headersRef.current);
       removeByUserIdInPlace(suggest, userId)
-    //   setQuery('');
-    //   setSuggest([]);
-    
       await listPageInvites(handle!, headersRef.current).then(setInvites);
     } catch (e) {
       console.error(e);
@@ -177,6 +177,41 @@ export default function PageView() {
   };
 
   const likeActive = !!summary?.hasLiked;
+
+  // ---- BOOST state derived from summary.page.page_boosted / boosted
+  const initialBoosted =
+    String(summary?.page?.page_boosted) === '1' ||
+    String(summary?.page?.boosted) === '1' ||
+    summary?.page?.boosted === true;
+
+  const [boosted, setBoosted] = useState<boolean>(false);
+  const [boostBusy, setBoostBusy] = useState(false);
+
+  useEffect(() => {
+    setBoosted(Boolean(initialBoosted));
+  }, [initialBoosted]);
+
+  const onToggleBoost = async () => {
+    if (!isAdmin || !handle || boostBusy) return;
+    setBoostBusy(true);
+    const next = !boosted;
+    try {
+      await togglePageBoost(handle, next, headersRef.current);
+      setBoosted(next);
+      setSummary((prev:any) => prev
+        ? ({ ...prev, page: { ...prev.page, page_boosted: next ? '1' : '0' } })
+        : prev
+      );
+      toast.success(next ? 'This page is now boosted.' : 'This page is now boosted.');
+     
+    } catch (e:any) {
+      console.error(e);
+      toast.error('Boost action failed'+e?.message || 'Please try again')
+     
+    } finally {
+      setBoostBusy(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-cus">
@@ -190,14 +225,14 @@ export default function PageView() {
         <div className="max-w-8xl mx-auto px-4 sm:px-6 py-10 text-gray-500">Page not found</div>
       ) : (
         <div className="max-w-8xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-12 gap-6">
-          {/* LEFT SIDEBAR — identical to Pages index/invites/create */}
+          {/* LEFT SIDEBAR */}
           <aside className="col-span-12 md:col-span-3">
             <PagesSidebar />
           </aside>
 
-          {/* MAIN CONTENT */}
+          {/* MAIN */}
           <main className="col-span-12 md:col-span-9">
-            {/* HEADER CARD — alignment fixed */}
+            {/* HEADER */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="relative h-48 sm:h-64 bg-gray-200">
                 {summary.page.cover && (
@@ -237,15 +272,30 @@ export default function PageView() {
                     <div className="text-gray-500 truncate">@{summary.page.name}</div>
                   </div>
 
+                  {/* LIKE */}
                   <Button
                     variant="ghost"
                     onClick={onToggleLike}
                     disabled={likeBusy}
-                    className={`rounded-full ${summary?.hasLiked ? 'text-[#1877F2]' : 'text-gray-700'}`}
+                    className={`rounded-full ${likeActive ? 'text-[#1877F2]' : 'text-gray-700'}`}
                   >
                     <ThumbsUp className="h-5 w-5 mr-2" />
-                    {summary?.hasLiked ? 'Liked' : 'Like'} · {summary.page.likes}
+                    {likeActive ? 'Liked' : 'Like'} · {summary.page.likes}
                   </Button>
+
+                  {/* BOOST (admin only) */}
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      onClick={onToggleBoost}
+                      disabled={boostBusy}
+                      className={`rounded-full ${boosted ? 'text-[#1877F2]' : 'text-gray-700'}`}
+                      title={boosted ? 'Unboost page' : 'Boost page'}
+                    >
+                      <Rocket className="h-5 w-5 mr-2" />
+                      {boosted ? 'Unboost' : 'Boost'}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -347,9 +397,7 @@ export default function PageView() {
                           <li key={i.inviteId} className="text-sm flex items-center gap-2">
                             <span className="truncate">{i.toUsername}</span>
                             <span className="text-gray-400">·</span>
-                            <span className="text-gray-500">
-                              invited by {i.fromUsername}
-                            </span>
+                            <span className="text-gray-500">invited by {i.fromUsername}</span>
                           </li>
                         ))}
                       </ul>

@@ -40,6 +40,7 @@ import EventsIndex from '@/pages/EventsIndex';
 import EventCreate from '@/pages/EventCreate';
 import EventsInvites from '@/pages/EventsInvites';
 import EventView from '@/pages/EventView';
+import WatchPage from '@/pages/Watch';
 
 
 
@@ -126,6 +127,8 @@ const App = () => (
                   <Route path="/events/create" element={<EventCreate />} />
                   <Route path="/events/invites" element={<EventsInvites />} />
                   <Route path="/events/:id" element={<EventView />} />
+                  <Route path="/watch" element={<WatchPage />} />
+
                  
 
                   <Route

@@ -28,7 +28,7 @@ export async function uploadMedia(files: File[],headers:Record<string,string>): 
 }
 
 export async function fetchPosts(headers: Record<string,string>) {
-  const res = await fetch(`${API_BASE_URL}/api/posts`, { headers, credentials: 'include' });
+  const res = await fetch(`${API_BASE_URL}/api/posts?withPromoted=1`, { headers, credentials: 'include' });
   return handle<any[]>(res);
 }
 

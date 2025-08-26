@@ -10,6 +10,7 @@ import { fetchFriendSuggestions, type User as FriendUser,sendFriendRequest } fro
 import { stripUploads } from '@/lib/url';
 import { useNavigate,Link } from "react-router-dom";
 import { toast } from 'sonner';
+import { encodeId } from "@/lib/idCipher";
 
 
 
@@ -172,7 +173,9 @@ function SuggestionsCard({
               <div className="flex items-center gap-3 min-w-0">
                 <img src={avatar} alt={name} className="h-12 w-12 rounded-full object-cover bg-gray-100" />
                 <div className="min-w-0">
+                   <Link to={`/profile/${encodeId(id)}`}>
                   <div className="text-sm font-medium text-gray-900 truncate">{name}</div>
+                  </Link>
                 </div>
               </div>
               <Button
@@ -184,6 +187,7 @@ function SuggestionsCard({
               >
                 <UserPlus className="h-4 w-4" />
               </Button>
+              
             </li>
           );
         })}
@@ -321,7 +325,7 @@ export default function RightSidebar({
 
   return (
     <div className="sticky top-20 space-y-6">
-      <HorizontalChips items={proUsers}   title="Pro Users"  {...ctaProps} onItemClick={(item) => navigate(`/pages/${item.id}`)}/>
+      <HorizontalChips items={proUsers}   title="Pro Users"  {...ctaProps} onItemClick={(item) => navigate(`/profile/${encodeId(item.id)}`)}/>
       <HorizontalChips items={proPages /* or samplePages if you haven't wired dynamic yet */} title="Pro Pages"
       {...ctaProps} onItemClick={(item) => navigate(`/pages/${item.id}`)}   // ⬅️ open view
       />

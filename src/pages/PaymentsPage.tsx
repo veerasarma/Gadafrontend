@@ -1,30 +1,46 @@
 // src/pages/PaymentsPage.tsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAuthHeader,useAuthHeaderupload } from "@/hooks/useAuthHeader";
+import { useAuthHeader, useAuthHeaderupload } from "@/hooks/useAuthHeader";
 import {
   fetchTransactions,
   Transaction,
   initializePayment,
-  fetchBalance,fetchSysdetails
+  fetchBalance,
+  fetchSysdetails,
 } from "@/services/paymentService";
 import { Navbar } from "@/components/layout/Navbar";
 import Sidebar from "@/components/ui/Sidebar1";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import { Wallet, CreditCard, Landmark } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { CreditCard, Landmark } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import ManualWithdrawal from "@/components/wallet/ManualWithdrawal";
+
 const API_BASE_URL: string =
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8085';
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8085";
 
 declare global {
-  interface Window { PaystackPop: any; }
+  interface Window {
+    PaystackPop: any;
+  }
 }
 
 export default function PaymentsPage() {
@@ -34,7 +50,17 @@ export default function PaymentsPage() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
-  const [balance, setBalance] = useState({ user_wallet_balance: 0, user_points: 0 });
+
+  // pagination for wallet table
+  const TX_PAGE_SIZE = 20;
+  const [txPage, setTxPage] = useState(1);
+  const [txHasMore, setTxHasMore] = useState(false);
+  const [txLoadingMore, setTxLoadingMore] = useState(false);
+
+  const [balance, setBalance] = useState({
+    user_wallet_balance: 0,
+    user_points: 0,
+  });
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -43,45 +69,101 @@ export default function PaymentsPage() {
   const [payLoading, setPayLoading] = useState(false);
 
   // Payment method (radio)
-  const [paymentMethod, setPaymentMethod] = useState<"paystack" | "bank">("paystack");
+  const [paymentMethod, setPaymentMethod] = useState<"paystack" | "bank">(
+    "paystack"
+  );
 
   // Popups
   const [showFeeModal, setShowFeeModal] = useState(false);
   const [showBankModal, setShowBankModal] = useState(false);
+
+  // Tabs
+  const [activeTab, setActiveTab] = useState<"wallet" | "payments">("wallet");
 
   // Bank receipt upload
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [sendingReceipt, setSendingReceipt] = useState(false);
 
   // --- Fees (placeholder – make dynamic later) ---
-  const VAT_PERCENT = Number(sysdetails?.payment_vat_percentage || 2);   // %
-  const FEES_PERCENT = Number(sysdetails?.payment_fees_percentage || 6);  // %
+  const VAT_PERCENT = Number(sysdetails?.payment_vat_percentage || 2); // %
+  const FEES_PERCENT = Number(sysdetails?.payment_fees_percentage || 6); // %
   const baseAmount = Number(amount || 0);
-  const vat = useMemo(() => +(baseAmount * (VAT_PERCENT / 100)).toFixed(2), [baseAmount]);
-  const fees = useMemo(() => +(baseAmount * (FEES_PERCENT / 100)).toFixed(2), [baseAmount]);
-  const total = useMemo(() => +(baseAmount + vat + fees).toFixed(2), [baseAmount, vat, fees]);
+  const vat = useMemo(
+    () => +(baseAmount * (VAT_PERCENT / 100)).toFixed(2),
+    [baseAmount]
+  );
+  const fees = useMemo(
+    () => +(baseAmount * (FEES_PERCENT / 100)).toFixed(2),
+    [baseAmount]
+  );
+  const total = useMemo(
+    () => +(baseAmount + vat + fees).toFixed(2),
+    [baseAmount, vat, fees]
+  );
 
-  useEffect(() => {
+  // ======== data loaders ========
+  const loadTxFirstPage = async () => {
     if (!accessToken) return;
     setLoadingTx(true);
+    try {
+      const resp = await fetchTransactions(headers, {
+        page: 1,
+        pageSize: TX_PAGE_SIZE,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      });
+      setTransactions(resp.data);
+      setTxPage(resp.page);
+      setTxHasMore(resp.hasMore);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load transactions");
+    } finally {
+      setLoadingTx(false);
+    }
+  };
 
-    fetchTransactions(headers, startDate || undefined, endDate || undefined)
-    .then(setTransactions)
-    .catch(console.error)
-    .finally(() => setLoadingTx(false));
+  const loadMoreTx = async () => {
+    if (!txHasMore || txLoadingMore) return;
+    setTxLoadingMore(true);
+    try {
+      const resp = await fetchTransactions(headers, {
+        page: txPage + 1,
+        pageSize: TX_PAGE_SIZE,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      });
+      setTransactions((prev) => [...prev, ...resp.data]);
+      setTxPage(resp.page);
+      setTxHasMore(resp.hasMore);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load more");
+    } finally {
+      setTxLoadingMore(false);
+    }
+  };
 
-    fetchBalance(headers)
-    .then(setBalance)
-    .catch(console.error);
+  // initial load
+  useEffect(() => {
+    if (!accessToken) return;
+    loadTxFirstPage();
+    fetchBalance(headers).then(setBalance).catch(console.error);
+    fetchSysdetails(headers).then(setSysdetails).catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken]);
 
-    fetchSysdetails(headers)
-    .then(setSysdetails)
-    .catch(console.error);
-  }, [accessToken, startDate, endDate]);
+  // refetch on filter change
+  useEffect(() => {
+    loadTxFirstPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate]);
 
   // Currency fmt
   const fmt = (v: number) =>
-    `₦${(isNaN(v) ? 0 : v).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    `₦${(isNaN(v) ? 0 : v).toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    })}`;
 
   // Click "Pay ₦" -> open Fee modal
   const handleOpenFeeModal = (e: React.FormEvent) => {
@@ -93,7 +175,6 @@ export default function PaymentsPage() {
 
   // Continue from Fee modal
   const handleFeeContinue = async () => {
-    // Decide amount to charge/send: using TOTAL (amount + VAT + fees)
     const chargeAmount = total;
 
     if (paymentMethod === "bank") {
@@ -102,7 +183,6 @@ export default function PaymentsPage() {
       return;
     }
 
-    // Paystack flow
     if (!user?.email) return;
     setPayLoading(true);
     try {
@@ -112,17 +192,15 @@ export default function PaymentsPage() {
         { userId: user.id, method: "paystack", baseAmount }
       );
 
-      // If your backend returns authorization_url to redirect, you could just do:
-      // window.location.href = authorization_url;
-      // You previously used inline widget; keep that here:
       const handler = window.PaystackPop.setup({
         key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
         email: user.email,
-        amount: Math.round(chargeAmount * 100), // kobo
+        amount: Math.round(chargeAmount * 100),
         reference,
         callback: () => {
           setStartDate("");
           setEndDate("");
+          loadTxFirstPage();
         },
         onClose: () => {},
       });
@@ -143,25 +221,23 @@ export default function PaymentsPage() {
     try {
       const fd = new FormData();
       fd.append("userId", String(user.id));
-      fd.append("amount", String(total));      // send total incl. fees
+      fd.append("amount", String(total));
       fd.append("baseAmount", String(baseAmount));
       fd.append("vat", String(vat));
       fd.append("fees", String(fees));
       fd.append("method", "bank");
       fd.append("receipt", receiptFile);
 
-      await fetch(API_BASE_URL+"/api/payments/bank-transfer/receipt", {
+      await fetch(API_BASE_URL + "/api/payments/bank-transfer/receipt", {
         method: "POST",
-        headers: { ...headers1 }, // auth header only; don't set content-type for FormData
+        headers: { ...headers1 },
         body: fd,
       });
-      toast.success("Receipt submitted. We’ll verify within 48 hours.")
-      // Reset UI
+      toast.success("Receipt submitted. We’ll verify within 48 hours.");
       setReceiptFile(null);
       setShowBankModal(false);
       setAmount("");
-      // Optionally re-fetch balance/transactions
-      fetchTransactions(headers).then(setTransactions).catch(console.error);
+      loadTxFirstPage();
       fetchBalance(headers).then(setBalance).catch(console.error);
     } catch (e) {
       console.error(e);
@@ -175,7 +251,8 @@ export default function PaymentsPage() {
   const bank = {
     bank_name: sysdetails?.bank_name || "moniepoint MFB",
     account_number: sysdetails?.bank_account_number || "5329604228",
-    account_name: sysdetails?.bank_account_name || "mega fruitful vine services limited",
+    account_name:
+      sysdetails?.bank_account_name || "mega fruitful vine services limited",
     country: sysdetails?.bank_account_country || "nigeria",
   };
 
@@ -186,212 +263,296 @@ export default function PaymentsPage() {
       <div className="flex flex-1 overflow-hidden px-4 lg:px-8 py-6">
         <div className="flex flex-1 max-w-[1600px] w-full mx-auto gap-6">
           {/* LEFT SIDEBAR */}
-          <aside className="hidden lg:block lg:w-1/5">
-            <div className="sticky top-16">
-              <Sidebar />
-            </div>
+          <aside className="hidden lg:block lg:w-1/5 min-h-0 overflow-y-auto">
+            <Sidebar />
           </aside>
 
           {/* MAIN */}
           <main className="flex-1 flex flex-col overflow-y-auto space-y-6">
-            {/* Banner & Tabs */}
-            <div className="rounded-lg overflow-hidden shadow-sm">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-8 flex items-center">
-                <Wallet className="h-8 w-8 text-white mr-4" />
-                <div>
-                  <h1 className="text-2xl font-bold text-white">Wallet</h1>
-                  <p className="text-white/90">Send and transfer money</p>
-                </div>
-              </div>
-              <div className="bg-white">
-                <nav className="flex gap-8 px-6">
-                  <button className="py-4 text-blue-600 border-b-2 border-blue-600 font-medium">
-                    Wallet
-                  </button>
-                  <button
-                    className="py-4 text-gray-600 hover:text-gray-900"
-                    onClick={() => (window.location.href = "/payments")}
-                  >
-                    Payments
-                  </button>
-                </nav>
-              </div>
+            {/* Tabs */}
+            <div className="bg-white">
+              <nav className="flex gap-8 px-6">
+                <button
+                  type="button"
+                  className={`py-4 border-b-2 font-medium ${
+                    activeTab === "wallet"
+                      ? "text-blue-600 border-blue-600"
+                      : "text-gray-600 hover:text-gray-900 border-transparent"
+                  }`}
+                  onClick={() => setActiveTab("wallet")}
+                >
+                  Wallet
+                </button>
+
+                <button
+                  type="button"
+                  className={`py-4 border-b-2 font-medium ${
+                    activeTab === "payments"
+                      ? "text-blue-600 border-blue-600"
+                      : "text-gray-600 hover:text-gray-900 border-transparent"
+                  }`}
+                  onClick={() => setActiveTab("payments")}
+                >
+                  Payments
+                </button>
+              </nav>
             </div>
 
-            {/* Balance + Payment Method + Checkout */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Your Credit */}
-              <div className="bg-white rounded-lg shadow p-6 flex items-center gap-4">
-                <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center">
-                  <CreditCard className="h-5 w-5 text-gray-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Your Credit</p>
-                  <p className="text-2xl font-semibold">
-                    {fmt(balance.user_wallet_balance)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Payment Method */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <label className="block text-sm text-gray-600 mb-2">
-                  Payment Method
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label
-                    className={`flex items-center gap-3 border rounded-lg px-4 py-3 cursor-pointer transition-colors
-                    ${paymentMethod === "paystack" ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-blue-400"}`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      className="hidden"
-                      value="paystack"
-                      checked={paymentMethod === "paystack"}
-                      onChange={() => setPaymentMethod("paystack")}
-                    />
-                    <div className="h-9 w-9 rounded-md bg-sky-100 flex items-center justify-center">
-                      <CreditCard className="h-5 w-5 text-sky-600" />
+            {/* ===== WALLET TAB ===== */}
+            {activeTab === "wallet" && (
+              <>
+                {/* Balance + Payment Method + Checkout */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Your Credit */}
+                  <div className="bg-white rounded-lg shadow p-6 flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <CreditCard className="h-5 w-5 text-gray-600" />
                     </div>
-                    <span className="font-medium">Paystack</span>
-                  </label>
-
-                  <label
-                    className={`flex items-center gap-3 border rounded-lg px-4 py-3 cursor-pointer transition-colors
-                    ${paymentMethod === "bank" ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-blue-400"}`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      className="hidden"
-                      value="bank"
-                      checked={paymentMethod === "bank"}
-                      onChange={() => setPaymentMethod("bank")}
-                    />
-                    <div className="h-9 w-9 rounded-md bg-emerald-100 flex items-center justify-center">
-                      <Landmark className="h-5 w-5 text-emerald-600" />
+                    <div>
+                      <p className="text-sm text-gray-500">Your Credit</p>
+                      <p className="text-2xl font-semibold">
+                        {fmt(balance.user_wallet_balance)}
+                      </p>
                     </div>
-                    <span className="font-medium">Bank Transfer</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Amount + Pay */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <form
-                  onSubmit={handleOpenFeeModal}
-                  className="flex flex-col sm:flex-row gap-3 sm:items-end"
-                >
-                  <div className="flex-1">
-                    <label htmlFor="amount" className="block text-sm text-gray-600 mb-1">
-                      Amount (₦)
-                    </label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      min="1"
-                      inputMode="numeric"
-                      value={amount}
-                      onChange={(e) =>
-                        setAmount(e.target.value === "" ? "" : Number(e.target.value))
-                      }
-                      placeholder="Enter amount"
-                      className="h-11"
-                    />
                   </div>
 
-                  <Button
-                    type="submit"
-                    disabled={payLoading || !amount || Number(amount) <= 0}
-                    className="h-11 px-6 w-full sm:w-auto"
-                  >
-                    {payLoading ? "Processing…" : "Pay ₦"}
-                  </Button>
-                </form>
-              </div>
-            </div>
+                  {/* Payment Method */}
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <label className="block text-sm text-gray-600 mb-2">
+                      Payment Method
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <label
+                        className={`flex items-center gap-3 border rounded-lg px-4 py-3 cursor-pointer transition-colors
+                        ${
+                          paymentMethod === "paystack"
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-200 hover:border-blue-400"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          className="hidden"
+                          value="paystack"
+                          checked={paymentMethod === "paystack"}
+                          onChange={() => setPaymentMethod("paystack")}
+                        />
+                        <div className="h-9 w-9 rounded-md bg-sky-100 flex items-center justify-center">
+                          <CreditCard className="h-5 w-5 text-sky-600" />
+                        </div>
+                        <span className="font-medium">Paystack</span>
+                      </label>
 
-            {/* Filters */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:items-end">
-                <div>
-                  <label htmlFor="startDate" className="block text-sm text-gray-600 mb-1">
-                    Start Date
-                  </label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    max={format(new Date(), "yyyy-MM-dd")}
-                    className="h-11"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="endDate" className="block text-sm text-gray-600 mb-1">
-                    End Date
-                  </label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    max={format(new Date(), "yyyy-MM-dd")}
-                    className="h-11"
-                  />
-                </div>
-                <div className="flex sm:justify-end">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => { setStartDate(""); setEndDate(""); }}
-                    className="h-11 w-full sm:w-auto"
-                  >
-                    Clear
-                  </Button>
-                </div>
-              </div>
-            </div>
+                      <label
+                        className={`flex items-center gap-3 border rounded-lg px-4 py-3 cursor-pointer transition-colors
+                        ${
+                          paymentMethod === "bank"
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-200 hover:border-blue-400"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          className="hidden"
+                          value="bank"
+                          checked={paymentMethod === "bank"}
+                          onChange={() => setPaymentMethod("bank")}
+                        />
+                        <div className="h-9 w-9 rounded-md bg-emerald-100 flex items-center justify-center">
+                          <Landmark className="h-5 w-5 text-emerald-600" />
+                        </div>
+                        <span className="font-medium">Bank Transfer</span>
+                      </label>
+                    </div>
+                  </div>
 
-            {/* Transactions */}
-            <div className="bg-white rounded-lg shadow p-6">
-              {loadingTx ? (
-                <div className="flex justify-center py-10">
-                  <svg className="animate-spin h-6 w-6 text-gray-500" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Amount (₦)</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((tx) => (
-                      <TableRow key={tx.id}>
-                        <TableCell>{format(new Date(tx.createdAt), "MMM d, yyyy")}</TableCell>
-                        <TableCell className="capitalize">{tx.type}</TableCell>
-                        <TableCell className="text-right">{tx.amount.toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
+                  {/* Amount + Pay */}
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <form
+                      onSubmit={handleOpenFeeModal}
+                      className="flex flex-col sm:flex-row gap-3 sm:items-end"
+                    >
+                      <div className="flex-1">
+                        <label
+                          htmlFor="amount"
+                          className="block text-sm text-gray-600 mb-1"
+                        >
+                          Amount (₦)
+                        </label>
+                        <Input
+                          id="amount"
+                          type="number"
+                          min="1"
+                          inputMode="numeric"
+                          value={amount}
+                          onChange={(e) =>
+                            setAmount(
+                              e.target.value === "" ? "" : Number(e.target.value)
+                            )
+                          }
+                          placeholder="Enter amount"
+                          className="h-11"
+                        />
+                      </div>
 
-                    {transactions.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-gray-500 py-10">
-                          No transactions found.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
+                      <Button
+                        type="submit"
+                        disabled={payLoading || !amount || Number(amount) <= 0}
+                        className="h-11 px-6 w-full sm:w-auto"
+                      >
+                        {payLoading ? "Processing…" : "Pay ₦"}
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+
+                {/* Filters */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:items-end">
+                    <div>
+                      <label
+                        htmlFor="startDate"
+                        className="block text-sm text-gray-600 mb-1"
+                      >
+                        Start Date
+                      </label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        max={format(new Date(), "yyyy-MM-dd")}
+                        className="h-11"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="endDate"
+                        className="block text-sm text-gray-600 mb-1"
+                      >
+                        End Date
+                      </label>
+                      <Input
+                        id="endDate"
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        max={format(new Date(), "yyyy-MM-dd")}
+                        className="h-11"
+                      />
+                    </div>
+                    <div className="flex sm:justify-end">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => {
+                          setStartDate("");
+                          setEndDate("");
+                        }}
+                        className="h-11 w-full sm:w-auto"
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Transactions */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  {loadingTx ? (
+                    <div className="flex justify-center py-10">
+                      <svg
+                        className="animate-spin h-6 w-6 text-gray-500"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8z"
+                        />
+                      </svg>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Fixed-height scrollable table so page doesn't jump */}
+                      <div className="max-h-[420px] overflow-y-auto pr-2">
+                        <Table>
+                          <TableHeader className="sticky top-0 bg-white">
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead className="text-right">
+                                Amount (₦)
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {transactions.map((tx) => (
+                              <TableRow key={tx.id}>
+                                <TableCell>
+                                  {format(new Date(tx.createdAt), "MMM d, yyyy")}
+                                </TableCell>
+                                <TableCell className="capitalize">
+                                  {tx.type}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {tx.amount.toLocaleString()}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+
+                            {transactions.length === 0 && (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={3}
+                                  className="text-center text-gray-500 py-10"
+                                >
+                                  No transactions found.
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      {/* Load more button (doesn't change page height) */}
+                      {txHasMore && (
+                        <div className="flex justify-center mt-4">
+                          <Button
+                            onClick={loadMoreTx}
+                            disabled={txLoadingMore}
+                            className="h-11 px-6"
+                          >
+                            {txLoadingMore ? "Loading..." : "Load more"}
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ===== PAYMENTS TAB ===== */}
+            {activeTab === "payments" && (
+              <ManualWithdrawal
+                headers={headers}
+                balance={balance.user_wallet_balance}
+                refreshBalance={() =>
+                  fetchBalance(headers).then(setBalance).catch(console.error)
+                }
+              />
+            )}
           </main>
         </div>
       </div>
@@ -473,7 +634,9 @@ export default function PaymentsPage() {
                 onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
                 className="cursor-pointer"
               />
-              {receiptFile && <span className="text-sm text-gray-600">{receiptFile.name}</span>}
+              {receiptFile && (
+                <span className="text-sm text-gray-600">{receiptFile.name}</span>
+              )}
             </div>
           </div>
 
@@ -481,7 +644,10 @@ export default function PaymentsPage() {
             <Button variant="secondary" onClick={() => setShowBankModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSendBankReceipt} disabled={!receiptFile || sendingReceipt}>
+            <Button
+              onClick={handleSendBankReceipt}
+              disabled={!receiptFile || sendingReceipt}
+            >
               {sendingReceipt ? "Sending..." : "Send"}
             </Button>
           </DialogFooter>

@@ -1,4 +1,5 @@
-import { useState } from "react";
+// src/pages/admin/AdminLayout.tsx
+import { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
@@ -11,35 +12,173 @@ import {
   Newspaper,
   LandPlot,
   Landmark,
+  BookOpen,
+  ChevronDown,
+  ChevronRight,
+  Tags,
+  Group,
+  FolderTree,
+  Calendar,
+  CreditCard
 } from "lucide-react";
 
+/** Flat items + multiple grouped menus with children */
 const nav = [
-  { to: "/admin", label: "Dashboard", icon: Gauge },
+  { to: "/admin/", label: "Dashboard", icon: Gauge },
   { to: "/admin/users", label: "Users", icon: Users },
-  { to: "/admin/settings", label: "Settings", icon: Settings },
   { to: "/admin/posts", label: "Posts", icon: Newspaper },
   { to: "/admin/representatives", label: "Representatives", icon: LandPlot },
   { to: "/admin/banktransfers", label: "Bank Transfers", icon: Landmark },
+
+  {
+    label: "Pages",
+    icon: BookOpen,
+    children: [
+      { to: "/admin/pages", label: "Pages", icon: BookOpen },
+      { to: "/admin/page-categories", label: "Pages Categories", icon: Tags },
+    ],
+  },
+  {
+    label: "Settings",
+    icon: Settings,
+    children: [
+      { to: "/admin/settings/payments", label: "Payment setttings", icon: CreditCard },
+      { to: "/admin/page-categories", label: "Pages Categories", icon: Tags },
+    ],
+  },
+  {
+    label: "Groups",
+    icon: Group,
+    children: [
+      { to: "/admin/groups", label: "Groups", icon: Group },
+      { to: "/admin/group-categories", label: "Group Categories", icon: FolderTree },
+    ],
+  },
+  {
+    label: "Events",
+    icon: Calendar,
+    children: [
+      { to: "/admin/events", label: "Events", icon: Calendar },
+      { to: "/admin/events-categories", label: "Events Categories", icon: FolderTree },
+    ],
+  },
 ];
 
 export default function AdminLayout() {
   const { pathname } = useLocation();
-  const [open, setOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false); // mobile drawer
+
+  /** Build a quick lookup of which grouped menu is "active" for current URL */
+  const groupActivity = useMemo(() => {
+    const map = new Map<string, boolean>();
+    nav.forEach((item: any) => {
+      if (item.children?.length) {
+        const active = item.children.some(
+          (c: any) => pathname === c.to || pathname.startsWith(`${c.to}/`)
+        );
+        map.set(item.label, active);
+      }
+    });
+    return map;
+  }, [pathname]);
+
+  /** Maintain open/closed state per group (independent) */
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  // Auto-open the group that matches current path; preserve others
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = { ...prev };
+      groupActivity.forEach((active, label) => {
+        if (active) next[label] = true;
+      });
+      return next;
+    });
+  }, [groupActivity]);
+
+  const toggleGroup = (label: string) =>
+    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+
+  const ItemButton = ({
+    active,
+    children,
+    onClick,
+  }: {
+    active?: boolean;
+    children: React.ReactNode;
+    onClick?: () => void;
+  }) => (
+    <Button
+      variant={active ? "default" : "ghost"}
+      className="w-full justify-start"
+      onClick={onClick}
+    >
+      {children}
+    </Button>
+  );
 
   const Sidebar = (
     <nav className="p-4 space-y-2">
-      {nav.map((item) => {
+      {nav.map((item: any) => {
+        // grouped item
+        if (item.children?.length) {
+          const Icon = item.icon;
+          const label = item.label as string;
+          const groupActive = !!groupActivity.get(label);
+          const open = !!openGroups[label];
+
+          return (
+            <div key={label} className="space-y-1">
+              <ItemButton active={groupActive} onClick={() => toggleGroup(label)}>
+                <Icon className="h-4 w-4 mr-2" />
+                <span className="flex-1 text-left">{label}</span>
+                {open ? (
+                  <ChevronDown className="h-4 w-4 opacity-70" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 opacity-70" />
+                )}
+              </ItemButton>
+
+              {open && (
+                <div className="ml-6 space-y-1">
+                  {item.children.map((child: any) => {
+                    const CIcon = child.icon || BookOpen;
+                    const active =
+                      pathname === child.to || pathname.startsWith(`${child.to}/`);
+                    return (
+                      <Link
+                        key={child.to}
+                        to={child.to}
+                        onClick={() => setDrawerOpen(false)}
+                        className="block"
+                      >
+                        <ItemButton active={active}>
+                          <CIcon className="h-4 w-4 mr-2" />
+                          {child.label}
+                        </ItemButton>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        // flat item
         const Icon = item.icon;
-        const active = pathname === item.to;
+        const active = pathname === item.to || pathname.startsWith(`${item.to}/`);
         return (
-          <Link key={item.to} to={item.to} onClick={() => setOpen(false)}>
-            <Button
-              variant={active ? "default" : "ghost"}
-              className="w-full justify-start"
-            >
+          <Link
+            key={item.to}
+            to={item.to}
+            onClick={() => setDrawerOpen(false)}
+            className="block"
+          >
+            <ItemButton active={active}>
               <Icon className="h-4 w-4 mr-2" />
               {item.label}
-            </Button>
+            </ItemButton>
           </Link>
         );
       })}
@@ -47,7 +186,7 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-cus">
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop left rail */}
@@ -58,7 +197,7 @@ export default function AdminLayout() {
         </aside>
 
         {/* Mobile drawer */}
-        <Sheet open={open} onOpenChange={setOpen}>
+        <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
           <SheetTrigger asChild>
             <Button
               variant="ghost"

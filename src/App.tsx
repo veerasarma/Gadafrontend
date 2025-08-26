@@ -54,6 +54,21 @@ import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminProfilePage from "@/pages/admin/AdminProfilePage";
 import AdminPosts from "@/pages/admin/AdminPosts";
+import AdminPages from "@/pages/admin/AdminPages";
+import AdminPageCategories from '@/pages/admin/AdminPageCategories';
+import AdminPageCategoryForm from '@/pages/admin/AdminPageCategoryForm';
+import AdminGroups from '@/pages/admin/AdminGroups';
+import AdminGroupCategories from '@/pages/admin/AdminGroupCategories';
+import AdminGroupCategoryForm from '@/pages/admin/AdminGroupCategoryForm';
+import AdminEvents from '@/pages/admin/AdminEvents';
+import AdminEventForm from '@/pages/admin/AdminEventForm';
+import AdminEventCategoryForm from '@/pages/admin/AdminEventCategoryForm';
+import AdminEventCategoriesList from '@/pages/admin/AdminEventCategoriesList';
+import Paymentrequest from "@/pages/admin/Paymentrequest";
+import PaymentSettings from "@/pages/admin/PaymentSettings";
+
+
+
 
 import NotFound from "./pages/NotFound";
 import Packages from "./pages/Packages";
@@ -128,6 +143,7 @@ const App = () => (
                   <Route path="/events/invites" element={<EventsInvites />} />
                   <Route path="/events/:id" element={<EventView />} />
                   <Route path="/watch" element={<WatchPage />} />
+                  
 
                  
 
@@ -150,6 +166,7 @@ const App = () => (
                       <Route path="settings" element={<AdminSettings />} />
                       <Route path="profile" element={<AdminProfilePage />} />
                       <Route path="posts" element={<AdminPosts />} />
+                      <Route path="pages" element={<AdminPages />} />
                       <Route
                       path="representatives"
                       element={<AdminRepresentatives />}
@@ -159,6 +176,22 @@ const App = () => (
                       path="banktransfers"
                       element={<AdminBankTransfers />}
                     />
+                    <Route path="/admin/page-categories" element={<AdminPageCategories />} />
+                    <Route path="/admin/page-categories/new" element={<AdminPageCategoryForm />} />
+                    <Route path="/admin/page-categories/:id" element={<AdminPageCategoryForm />} />
+                    <Route path="/admin/groups" element={<AdminGroups />} />
+                    <Route path="/admin/group-categories" element={<AdminGroupCategories />} />
+                    <Route path="/admin/group-categories/new" element={<AdminGroupCategoryForm />} />
+                    <Route path="/admin/group-categories/:id" element={<AdminGroupCategoryForm />} />
+                    <Route path="/admin/events" element={<AdminEvents />} />
+                    <Route path="/admin/events/new" element={<AdminEventForm />} />
+                    <Route path="/admin/events/:id" element={<AdminEventForm />} />
+                    <Route path="/admin/events-categories" element={<AdminEventCategoriesList />} />
+                    <Route path="/admin/events-categories/new" element={<AdminEventCategoryForm />} />
+                    <Route path="/admin/events-categories/:id" element={<AdminEventCategoryForm />} />
+                    <Route path="/admin/payment-requests" element={<Paymentrequest />} />
+                    <Route path="/admin/settings/payments" element={<PaymentSettings />} />
+
                   </Route>
                 </Routes>
               </BrowserRouter>

@@ -417,6 +417,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { toast } from 'sonner';
+import { encodeId } from "@/lib/idCipher";
 
 const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 const API_BASE = API_BASE_RAW.replace(/\/+$/, '');
@@ -637,7 +638,7 @@ export function PostItem({ post, trackViews = true }: PostItemProps) {
           <div className="flex items-center">
             {/* LEFT: author */}
             <div className="flex items-center space-x-3">
-              <Link to={`/profile/${postAuthor.id}`}>
+              <Link to={`/profile/${encodeId(postAuthor.id)}`}>
                 <Avatar>
                   <AvatarImage
                     src={postAuthor.profileImage ? resolveMediaUrl(postAuthor.profileImage) : `${API_BASE}/uploads/profile/defaultavatar.png`}

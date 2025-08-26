@@ -66,6 +66,16 @@ import AdminEventCategoryForm from '@/pages/admin/AdminEventCategoryForm';
 import AdminEventCategoriesList from '@/pages/admin/AdminEventCategoriesList';
 import Paymentrequest from "@/pages/admin/Paymentrequest";
 import PaymentSettings from "@/pages/admin/PaymentSettings";
+import WalletSettingsPage from "@/pages/admin/WalletSettings";
+import EarningsPackages from "@/pages/admin/EarningsPackages";
+import PackagesList from "@/pages/admin/packages/PackagesList";
+import PackageForm from "@/pages/admin/packages/PackageForm";
+import AdminSubscribers from "@/pages/admin/subscribers/AdminSubscribers";
+import PointsSettingsPage from "@/pages/admin/settings/PointsSettings";
+
+
+
+
 
 
 
@@ -143,6 +153,7 @@ const App = () => (
                   <Route path="/events/invites" element={<EventsInvites />} />
                   <Route path="/events/:id" element={<EventView />} />
                   <Route path="/watch" element={<WatchPage />} />
+                 
                   
 
                  
@@ -191,6 +202,13 @@ const App = () => (
                     <Route path="/admin/events-categories/:id" element={<AdminEventCategoryForm />} />
                     <Route path="/admin/payment-requests" element={<Paymentrequest />} />
                     <Route path="/admin/settings/payments" element={<PaymentSettings />} />
+                    <Route path="/admin/wallet-settings" element={<WalletSettingsPage />} />
+                    <Route path="/admin/earnings/packages" element={<EarningsPackages />} />
+                    <Route path="/admin/packages" element={<PackagesList />} />
+                    <Route path="/admin/packages/new" element={<PackageForm />} />
+                    <Route path="/admin/packages/:id/edit" element={<PackageForm />} />
+                    <Route path="/admin/subscribers" element={<AdminSubscribers />} />
+                    <Route path="/admin/settings/points" element={<PointsSettingsPage />} />
 
                   </Route>
                 </Routes>

@@ -19,7 +19,10 @@ import {
   Group,
   FolderTree,
   Calendar,
-  CreditCard
+  CreditCard,
+  Wallet,
+  ChartLine,
+  Package
 } from "lucide-react";
 
 /** Flat items + multiple grouped menus with children */
@@ -31,6 +34,13 @@ const nav = [
   { to: "/admin/banktransfers", label: "Bank Transfers", icon: Landmark },
 
   {
+    label: "Earnings",
+    icon: ChartLine,
+    children: [
+      { to: "/admin/earnings/packages", label: "Earnings", icon: ChartLine },
+    ],
+  },
+  {
     label: "Pages",
     icon: BookOpen,
     children: [
@@ -39,11 +49,19 @@ const nav = [
     ],
   },
   {
+    label: "Wallet",
+    icon: Wallet,
+    children: [
+      { to: "/admin/payment-requests", label: "Payment requests", icon: Wallet },
+      { to: "/admin/wallet-settings", label: "Wallet settings", icon: Tags },
+    ],
+  },
+  {
     label: "Settings",
     icon: Settings,
     children: [
       { to: "/admin/settings/payments", label: "Payment setttings", icon: CreditCard },
-      { to: "/admin/page-categories", label: "Pages Categories", icon: Tags },
+      { to: "/admin/settings/points", label: "Points setttings", icon: CreditCard },
     ],
   },
   {
@@ -60,6 +78,14 @@ const nav = [
     children: [
       { to: "/admin/events", label: "Events", icon: Calendar },
       { to: "/admin/events-categories", label: "Events Categories", icon: FolderTree },
+    ],
+  },
+  {
+    label: "Pros",
+    icon: Package,
+    children: [
+      { to: "/admin/packages", label: "Packages", icon: Package },
+      { to: "/admin/subscribers", label: "Subscribers", icon: FolderTree },
     ],
   },
 ];

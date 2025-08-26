@@ -27,6 +27,7 @@ import {
   ChevronUp,
   CircleDollarSign,
   UserPlus,
+  Terminal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -607,6 +608,12 @@ export function Navbar() {
                     </span>
                   </DropdownMenuItem>
                 </Link>
+                {user?.roles=='admin'?(<Link to="/admin">
+                  <DropdownMenuItem className="cursor-pointer">
+                    <Terminal className="mr-2 h-4 w-4" /> Admin panel{" "}
+                  </DropdownMenuItem>
+                </Link>
+                ):''}
                 <DropdownMenuSeparator />
                 <Link to="/wallet">
                   <DropdownMenuItem className="cursor-pointer">

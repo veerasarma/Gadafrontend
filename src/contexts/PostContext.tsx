@@ -71,10 +71,11 @@ export const PostProvider: React.FC = ({ children }) => {
 
   const sharePost = async (postId: string, comment?: string) => {
     await apiSharePost(postId, comment, headers);
-    setPosts(prev => prev.map(p => p.id === postId
-      ? { ...p, hasShared: true, shareCount: p.shareCount + 1 }
-      : p
-    ));
+    toast.success("Post has been Shared successfully")
+    // setPosts(prev => prev.map(p => p.id === postId
+    //   ? { ...p, hasShared: true, shareCount: p.shareCount + 1 }
+    //   : p
+    // ));
   };
 
   // const toggleSave = async (postId: string, currentlySaved: boolean) => {

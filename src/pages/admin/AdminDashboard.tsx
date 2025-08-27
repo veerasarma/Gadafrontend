@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuthHeader } from "@/hooks/useAuthHeader";
 import {
-  Users as UsersIcon, Clock, Mail, MinusCircle, UserCheck, Globe,
-  FileText, MessageSquare, BookOpen, UsersRound, CalendarDays, MessagesSquare,
-  BellRing, BarChart3, LineChart
+  Users as UsersIcon, Clock, Mail, MinusCircle, UserCheck,
+  Globe, FileText, MessageSquare, BookOpen, UsersRound,
+  CalendarDays, MessagesSquare, BellRing, BarChart3, LineChart,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -19,11 +19,9 @@ type DashboardStats = {
   pendingUsers: number;
   notActivated: number;
   banned: number;
-
   totalVisits: number;
   todayVisits: number;
   monthVisits: number;
-
   posts: number;
   comments: number;
   pages: number;
@@ -44,12 +42,13 @@ type MonthlySeries = {
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+/** Big gradient stat card */
 function StatCard({
   title, value, gradient, Icon,
 }: {
   title: string;
   value: number | string;
-  gradient: string;
+  gradient: string; // e.g. "from-indigo-500 to-blue-500"
   Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 }) {
   return (
@@ -71,21 +70,26 @@ function StatCard({
   );
 }
 
-function MiniCard({
-  title, value, Icon,
+/** Smaller gradient stat card */
+function SmallStatCard({
+  title, value, gradient, Icon,
 }: {
   title: string;
   value: number | string;
+  gradient: string;
   Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 }) {
   return (
-    <div className="rounded-2xl bg-white ring-1 ring-black/5 shadow-sm p-5 flex items-center justify-between">
-      <div>
-        <div className="text-2xl font-bold text-slate-900">{value}</div>
-        <div className="text-sm text-slate-600 mt-1">{title}</div>
-      </div>
-      <div className="h-10 w-10 grid place-items-center rounded-xl bg-slate-50">
-        <Icon className="h-5 w-5 text-slate-700" />
+    <div className={`relative overflow-hidden rounded-3xl px-5 py-6 text-white shadow-sm bg-gradient-to-tr ${gradient}`}>
+      <div className="pointer-events-none absolute -right-10 -bottom-10 h-32 w-32 rounded-full bg-white/15" />
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-3xl font-extrabold leading-none">{value}</div>
+          <div className="mt-1 text-sm font-medium opacity-95">{title}</div>
+        </div>
+        <div className="h-10 w-10 grid place-items-center rounded-xl bg-white/15">
+          <Icon className="h-5 w-5 text-white" />
+        </div>
       </div>
     </div>
   );
@@ -109,25 +113,42 @@ export default function AdminDashboard() {
       .catch(console.error);
   }, [ready]);
 
-  // Load monthly chart
+  // Load monthly chart with fallback to legacy admin.js (window.__ADMIN_MONTHLY__)
   useEffect(() => {
     if (!ready) return;
-    fetch(`${API_BASE_URL}/api/admin/stats/monthly?year=${year}`, { headers })
-      .then(r => { if (!r.ok) throw new Error("Failed to load monthly"); return r.json(); })
-      .then(setMonthly)
-      .catch(console.error);
-  }, [ready, year]);
+
+    const getMonthly = async () => {
+      try {
+        const r = await fetch(`${API_BASE_URL}/api/admin/stats/monthly?year=${year}`, { headers });
+        if (r.ok) {
+          const data = (await r.json()) as MonthlySeries;
+          setMonthly(data);
+          return;
+        }
+      } catch (e) {
+        // ignore – we’ll try the fallback below
+      }
+
+      // Fallback: legacy global injected by admin.js (if present)
+      const anyWin = window as any;
+      if (anyWin && anyWin.__ADMIN_MONTHLY__) {
+        setMonthly(anyWin.__ADMIN_MONTHLY__ as MonthlySeries);
+      }
+    };
+
+    getMonthly();
+  }, [ready, year, headers]);
 
   // Build chart data
   const chartData = useMemo(() => {
     if (!monthly) return [];
     return MONTHS.map((m, i) => ({
       month: m,
-      Users: monthly.users[i] || 0,
-      Pages: monthly.pages[i] || 0,
-      Groups: monthly.groups[i] || 0,
-      Events: monthly.events[i] || 0,
-      Posts: monthly.posts[i] || 0,
+      Users: monthly.users?.[i] ?? 0,
+      Pages: monthly.pages?.[i] ?? 0,
+      Groups: monthly.groups?.[i] ?? 0,
+      Events: monthly.events?.[i] ?? 0,
+      Posts: monthly.posts?.[i] ?? 0,
     }));
   }, [monthly]);
 
@@ -169,7 +190,7 @@ export default function AdminDashboard() {
               <YAxis />
               <Tooltip />
               <Legend />
-              {/* Distinct colors like the screenshot */}
+              {/* Distinct colors (Users/Pages/Groups/Events/Posts) */}
               <Bar dataKey="Users"  fill="#3b82f6" />
               <Bar dataKey="Pages"  fill="#22c55e" />
               <Bar dataKey="Groups" fill="#f59e0b" />
@@ -182,29 +203,29 @@ export default function AdminDashboard() {
 
       {/* Big KPI row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        <StatCard title="Users"         value={stats?.totalUsers ?? "—"} gradient="from-indigo-500 to-blue-500" Icon={UsersIcon} />
-        <StatCard title="Online"        value={stats?.online ?? "—"}      gradient="from-cyan-500 to-sky-500"   Icon={UserCheck} />
-        <StatCard title="Pending"       value={stats?.pendingUsers ?? "—"} gradient="from-orange-400 to-amber-500" Icon={Clock} />
-        <StatCard title="Not Activated" value={stats?.notActivated ?? "—"} gradient="from-rose-500 to-pink-500" Icon={Mail} />
+        <StatCard title="Users"         value={stats?.totalUsers ?? "—"}   gradient="from-indigo-500 to-blue-500" Icon={UsersIcon} />
+        <StatCard title="Online"        value={stats?.online ?? "—"}        gradient="from-cyan-500 to-sky-500"   Icon={UserCheck} />
+        <StatCard title="Pending"       value={stats?.pendingUsers ?? "—"}  gradient="from-orange-400 to-amber-500" Icon={Clock} />
+        <StatCard title="Not Activated" value={stats?.notActivated ?? "—"}  gradient="from-rose-500 to-pink-500" Icon={Mail} />
       </div>
 
-      {/* Second KPI row */}
+      {/* Second KPI row (Visits + Banned) — now colorful */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard title="Banned" value={stats?.banned ?? "—"} gradient="from-red-500 to-rose-700" Icon={MinusCircle} />
-        <MiniCard title="Total Visits"     value={stats?.totalVisits ?? "—"}    Icon={Globe} />
-        <MiniCard title="Today Visits"     value={stats?.todayVisits ?? "—"}    Icon={Globe} />
-        <MiniCard title="This Month Visits" value={stats?.monthVisits ?? "—"}   Icon={Globe} />
+        <SmallStatCard title="Total Visits"      value={stats?.totalVisits ?? "—"}  gradient="from-slate-700 to-slate-900" Icon={Globe} />
+        <SmallStatCard title="Today Visits"      value={stats?.todayVisits ?? "—"}  gradient="from-indigo-500 to-violet-500" Icon={Globe} />
+        <SmallStatCard title="This Month Visits" value={stats?.monthVisits ?? "—"}  gradient="from-cyan-500 to-teal-600" Icon={Globe} />
       </div>
 
-      {/* Content blocks */}
+      {/* Content blocks — all colorful now */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <MiniCard title="Posts"        value={stats?.posts ?? "—"}        Icon={FileText} />
-        <MiniCard title="Comments"     value={stats?.comments ?? "—"}     Icon={MessageSquare} />
-        <MiniCard title="Pages"        value={stats?.pages ?? "—"}        Icon={BookOpen} />
-        <MiniCard title="Groups"       value={stats?.groups ?? "—"}       Icon={UsersRound} />
-        <MiniCard title="Events"       value={stats?.events ?? "—"}       Icon={CalendarDays} />
-        <MiniCard title="Messages"     value={stats?.messages ?? "—"}     Icon={MessagesSquare} />
-        <MiniCard title="Notifications" value={stats?.notifications ?? "—"} Icon={BellRing} />
+        <SmallStatCard title="Posts"         value={stats?.posts ?? "—"}        gradient="from-violet-500 to-fuchsia-500" Icon={FileText} />
+        <SmallStatCard title="Comments"      value={stats?.comments ?? "—"}     gradient="from-emerald-500 to-teal-600"  Icon={MessageSquare} />
+        <SmallStatCard title="Pages"         value={stats?.pages ?? "—"}        gradient="from-blue-500 to-indigo-600"   Icon={BookOpen} />
+        <SmallStatCard title="Groups"        value={stats?.groups ?? "—"}       gradient="from-sky-500 to-cyan-600"      Icon={UsersRound} />
+        <SmallStatCard title="Events"        value={stats?.events ?? "—"}       gradient="from-amber-500 to-orange-600"  Icon={CalendarDays} />
+        <SmallStatCard title="Messages"      value={stats?.messages ?? "—"}     gradient="from-pink-500 to-rose-600"     Icon={MessagesSquare} />
+        <SmallStatCard title="Notifications" value={stats?.notifications ?? "—"} gradient="from-lime-500 to-emerald-600"  Icon={BellRing} />
       </div>
     </div>
   );

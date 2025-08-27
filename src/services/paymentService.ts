@@ -17,6 +17,7 @@ export interface InitializeResponse {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, amount, metadata })
     });
+    console.log(res,'resresresres')
     if (!res.ok) throw new Error('Payment initialization failed');
     return res.json();
   }

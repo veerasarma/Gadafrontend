@@ -690,6 +690,16 @@ export function Navbar() {
                     <Users className="h-5 w-5 mr-3 text-[#1877F2]" />
                     <span>People</span>
                   </Link>
+                  {user?.roles=='admin'?(
+                     <Link
+                     to="/admin"
+                     className="flex items-center p-2 hover:bg-gray-100 rounded-md"
+                   >
+                     <Terminal className="h-5 w-5 mr-3 text-[#1877F2]" />
+                     <span>Admin panel</span>
+                   </Link>
+                    
+                ):''}
                   <Link
                     to="/wallet"
                     className="flex items-center p-2 hover:bg-gray-100 rounded-md"

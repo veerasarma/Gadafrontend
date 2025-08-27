@@ -191,20 +191,21 @@ export default function PaymentsPage() {
         chargeAmount,
         { userId: user.id, method: "paystack", baseAmount }
       );
-
-      const handler = window.PaystackPop.setup({
-        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-        email: user.email,
-        amount: Math.round(chargeAmount * 100),
-        reference,
-        callback: () => {
-          setStartDate("");
-          setEndDate("");
-          loadTxFirstPage();
-        },
-        onClose: () => {},
-      });
-      handler.openIframe();
+      console.log(authorization_url,reference,'fjskdfjlskdjflsdkf')
+      window.location.href=authorization_url;
+      // const handler = window.PaystackPop.setup({
+      //   key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+      //   email: user.email,
+      //   amount: Math.round(chargeAmount * 100),
+      //   reference,
+      //   callback: () => {
+      //     setStartDate("");
+      //     setEndDate("");
+      //     loadTxFirstPage();
+      //   },
+      //   onClose: () => {},
+      // });
+      // handler.openIframe();
     } catch (err) {
       console.error(err);
       alert("Could not initiate Paystack payment");

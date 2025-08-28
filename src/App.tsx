@@ -58,15 +58,15 @@ import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminProfilePage from "@/pages/admin/AdminProfilePage";
 import AdminPosts from "@/pages/admin/AdminPosts";
 import AdminPages from "@/pages/admin/AdminPages";
-import AdminPageCategories from '@/pages/admin/AdminPageCategories';
-import AdminPageCategoryForm from '@/pages/admin/AdminPageCategoryForm';
-import AdminGroups from '@/pages/admin/AdminGroups';
-import AdminGroupCategories from '@/pages/admin/AdminGroupCategories';
-import AdminGroupCategoryForm from '@/pages/admin/AdminGroupCategoryForm';
-import AdminEvents from '@/pages/admin/AdminEvents';
-import AdminEventForm from '@/pages/admin/AdminEventForm';
-import AdminEventCategoryForm from '@/pages/admin/AdminEventCategoryForm';
-import AdminEventCategoriesList from '@/pages/admin/AdminEventCategoriesList';
+import AdminPageCategories from "@/pages/admin/AdminPageCategories";
+import AdminPageCategoryForm from "@/pages/admin/AdminPageCategoryForm";
+import AdminGroups from "@/pages/admin/AdminGroups";
+import AdminGroupCategories from "@/pages/admin/AdminGroupCategories";
+import AdminGroupCategoryForm from "@/pages/admin/AdminGroupCategoryForm";
+import AdminEvents from "@/pages/admin/AdminEvents";
+import AdminEventForm from "@/pages/admin/AdminEventForm";
+import AdminEventCategoryForm from "@/pages/admin/AdminEventCategoryForm";
+import AdminEventCategoriesList from "@/pages/admin/AdminEventCategoriesList";
 import Paymentrequest from "@/pages/admin/Paymentrequest";
 import PaymentSettings from "@/pages/admin/PaymentSettings";
 import WalletSettingsPage from "@/pages/admin/WalletSettings";
@@ -76,17 +76,11 @@ import PackageForm from "@/pages/admin/packages/PackageForm";
 import AdminSubscribers from "@/pages/admin/subscribers/AdminSubscribers";
 import PointsSettingsPage from "@/pages/admin/settings/PointsSettings";
 
-
-
-
-
-
-
-
 import NotFound from "./pages/NotFound";
 import Packages from "./pages/Packages";
 import AdminRepresentatives from "./pages/admin/AdminRepresentatives";
 import AdminBankTransfers from "./pages/admin/AdminBankTransfers";
+import AdminEarningPayments from "./pages/admin/AdminEarningPayments";
 
 const queryClient = new QueryClient();
 
@@ -161,65 +155,119 @@ const App = () => (
                  
                   
 
-                 
+                <Route
+                  path="/admin"
+                  element={
+                    <RequireAuth>
+                      <RequireRole roles={["admin"]}>
+                        <AdminLayout />
+                      </RequireRole>
+                    </RequireAuth>
+                  }
+                >
+                  <Route
+                    path="representative"
+                    element={<RepresentativePage />}
+                  />
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="settings" element={<AdminSettings />} />
+                  <Route path="profile" element={<AdminProfilePage />} />
+                  <Route path="posts" element={<AdminPosts />} />
+                  <Route
+                    path="representatives"
+                    element={<AdminRepresentatives />}
+                  />
 
                   <Route
-                    path="/admin"
-                    element={
-                      <RequireAuth>
-                        <RequireRole roles={["admin"]}>
-                          <AdminLayout />
-                        </RequireRole>
-                      </RequireAuth>
-                    }
-                  >
-                      <Route
-                      path="representative"
-                      element={<RepresentativePage />}
-                      />
-                      <Route index element={<AdminDashboard />} />
-                      <Route path="users" element={<AdminUsers />} />
-                      <Route path="settings" element={<AdminSettings />} />
-                      <Route path="profile" element={<AdminProfilePage />} />
-                      <Route path="posts" element={<AdminPosts />} />
-                      <Route path="pages" element={<AdminPages />} />
-                      <Route
-                      path="representatives"
-                      element={<AdminRepresentatives />}
-                      />
-
-                    <Route
-                      path="banktransfers"
-                      element={<AdminBankTransfers />}
-                    />
-                    <Route path="/admin/page-categories" element={<AdminPageCategories />} />
-                    <Route path="/admin/page-categories/new" element={<AdminPageCategoryForm />} />
-                    <Route path="/admin/page-categories/:id" element={<AdminPageCategoryForm />} />
-                    <Route path="/admin/groups" element={<AdminGroups />} />
-                    <Route path="/admin/group-categories" element={<AdminGroupCategories />} />
-                    <Route path="/admin/group-categories/new" element={<AdminGroupCategoryForm />} />
-                    <Route path="/admin/group-categories/:id" element={<AdminGroupCategoryForm />} />
-                    <Route path="/admin/events" element={<AdminEvents />} />
-                    <Route path="/admin/events/new" element={<AdminEventForm />} />
-                    <Route path="/admin/events/:id" element={<AdminEventForm />} />
-                    <Route path="/admin/events-categories" element={<AdminEventCategoriesList />} />
-                    <Route path="/admin/events-categories/new" element={<AdminEventCategoryForm />} />
-                    <Route path="/admin/events-categories/:id" element={<AdminEventCategoryForm />} />
-                    <Route path="/admin/payment-requests" element={<Paymentrequest />} />
-                    <Route path="/admin/settings/payments" element={<PaymentSettings />} />
-                    <Route path="/admin/wallet-settings" element={<WalletSettingsPage />} />
-                    <Route path="/admin/earnings/packages" element={<EarningsPackages />} />
-                    <Route path="/admin/packages" element={<PackagesList />} />
-                    <Route path="/admin/packages/new" element={<PackageForm />} />
-                    <Route path="/admin/packages/:id/edit" element={<PackageForm />} />
-                    <Route path="/admin/subscribers" element={<AdminSubscribers />} />
-                    <Route path="/admin/settings/points" element={<PointsSettingsPage />} />
-
-                  </Route>
-                </Routes>
-              </BrowserRouter>
-            </NotificationProvider>
-          </TooltipProvider>
+                    path="banktransfers"
+                    element={<AdminBankTransfers />}
+                  />
+                  <Route
+                    path="earningspayments"
+                    element={<AdminEarningPayments />}
+                  />
+                  <Route
+                    path="/admin/page-categories"
+                    element={<AdminPageCategories />}
+                  />
+                  <Route
+                    path="/admin/page-categories/new"
+                    element={<AdminPageCategoryForm />}
+                  />
+                  <Route
+                    path="/admin/page-categories/:id"
+                    element={<AdminPageCategoryForm />}
+                  />
+                  <Route path="/admin/groups" element={<AdminGroups />} />
+                  <Route
+                    path="/admin/group-categories"
+                    element={<AdminGroupCategories />}
+                  />
+                  <Route
+                    path="/admin/group-categories/new"
+                    element={<AdminGroupCategoryForm />}
+                  />
+                  <Route
+                    path="/admin/group-categories/:id"
+                    element={<AdminGroupCategoryForm />}
+                  />
+                  <Route path="/admin/events" element={<AdminEvents />} />
+                  <Route
+                    path="/admin/events/new"
+                    element={<AdminEventForm />}
+                  />
+                  <Route
+                    path="/admin/events/:id"
+                    element={<AdminEventForm />}
+                  />
+                  <Route
+                    path="/admin/events-categories"
+                    element={<AdminEventCategoriesList />}
+                  />
+                  <Route
+                    path="/admin/events-categories/new"
+                    element={<AdminEventCategoryForm />}
+                  />
+                  <Route
+                    path="/admin/events-categories/:id"
+                    element={<AdminEventCategoryForm />}
+                  />
+                  <Route
+                    path="/admin/payment-requests"
+                    element={<Paymentrequest />}
+                  />
+                  <Route
+                    path="/admin/settings/payments"
+                    element={<PaymentSettings />}
+                  />
+                  <Route
+                    path="/admin/wallet-settings"
+                    element={<WalletSettingsPage />}
+                  />
+                  <Route
+                    path="/admin/earnings/packages"
+                    element={<EarningsPackages />}
+                  />
+                  <Route path="/admin/packages" element={<PackagesList />} />
+                  <Route path="/admin/packages/new" element={<PackageForm />} />
+                  <Route
+                    path="/admin/packages/:id/edit"
+                    element={<PackageForm />}
+                  />
+                  <Route
+                    path="/admin/subscribers"
+                    element={<AdminSubscribers />}
+                  />
+                  <Route
+                    path="/admin/settings/points"
+                    element={<PointsSettingsPage />}
+                  />
+                </Route>
+              </Routes>
+            </BrowserRouter>
+          </NotificationProvider>
+        </TooltipProvider>
       </PostProvider>
       </ChatDockProvider>
     </AuthProvider>

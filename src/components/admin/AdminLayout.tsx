@@ -12,6 +12,7 @@ import {
   Newspaper,
   LandPlot,
   Landmark,
+  CircleDollarSign,
   BookOpen,
   ChevronDown,
   ChevronRight,
@@ -22,7 +23,7 @@ import {
   CreditCard,
   Wallet,
   ChartLine,
-  Package
+  Package,
 } from "lucide-react";
 
 /** Flat items + multiple grouped menus with children */
@@ -32,6 +33,11 @@ const nav = [
   { to: "/admin/posts", label: "Posts", icon: Newspaper },
   { to: "/admin/representatives", label: "Representatives", icon: LandPlot },
   { to: "/admin/banktransfers", label: "Bank Transfers", icon: Landmark },
+  {
+    to: "/admin/earningspayments",
+    label: "Earning-Payments",
+    icon: CircleDollarSign,
+  },
 
   {
     label: "Earnings",
@@ -52,7 +58,11 @@ const nav = [
     label: "Wallet",
     icon: Wallet,
     children: [
-      { to: "/admin/payment-requests", label: "Payment requests", icon: Wallet },
+      {
+        to: "/admin/payment-requests",
+        label: "Payment requests",
+        icon: Wallet,
+      },
       { to: "/admin/wallet-settings", label: "Wallet settings", icon: Tags },
     ],
   },
@@ -60,8 +70,16 @@ const nav = [
     label: "Settings",
     icon: Settings,
     children: [
-      { to: "/admin/settings/payments", label: "Payment setttings", icon: CreditCard },
-      { to: "/admin/settings/points", label: "Points setttings", icon: CreditCard },
+      {
+        to: "/admin/settings/payments",
+        label: "Payment setttings",
+        icon: CreditCard,
+      },
+      {
+        to: "/admin/settings/points",
+        label: "Points setttings",
+        icon: CreditCard,
+      },
     ],
   },
   {
@@ -69,7 +87,11 @@ const nav = [
     icon: Group,
     children: [
       { to: "/admin/groups", label: "Groups", icon: Group },
-      { to: "/admin/group-categories", label: "Group Categories", icon: FolderTree },
+      {
+        to: "/admin/group-categories",
+        label: "Group Categories",
+        icon: FolderTree,
+      },
     ],
   },
   {
@@ -77,7 +99,11 @@ const nav = [
     icon: Calendar,
     children: [
       { to: "/admin/events", label: "Events", icon: Calendar },
-      { to: "/admin/events-categories", label: "Events Categories", icon: FolderTree },
+      {
+        to: "/admin/events-categories",
+        label: "Events Categories",
+        icon: FolderTree,
+      },
     ],
   },
   {
@@ -155,7 +181,10 @@ export default function AdminLayout() {
 
           return (
             <div key={label} className="space-y-1">
-              <ItemButton active={groupActive} onClick={() => toggleGroup(label)}>
+              <ItemButton
+                active={groupActive}
+                onClick={() => toggleGroup(label)}
+              >
                 <Icon className="h-4 w-4 mr-2" />
                 <span className="flex-1 text-left">{label}</span>
                 {open ? (
@@ -170,7 +199,8 @@ export default function AdminLayout() {
                   {item.children.map((child: any) => {
                     const CIcon = child.icon || BookOpen;
                     const active =
-                      pathname === child.to || pathname.startsWith(`${child.to}/`);
+                      pathname === child.to ||
+                      pathname.startsWith(`${child.to}/`);
                     return (
                       <Link
                         key={child.to}
@@ -193,7 +223,8 @@ export default function AdminLayout() {
 
         // flat item
         const Icon = item.icon;
-        const active = pathname === item.to || pathname.startsWith(`${item.to}/`);
+        const active =
+          pathname === item.to || pathname.startsWith(`${item.to}/`);
         return (
           <Link
             key={item.to}

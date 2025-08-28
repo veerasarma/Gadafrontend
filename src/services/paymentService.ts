@@ -17,6 +17,7 @@ export interface InitializeResponse {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, amount, metadata })
     });
+    console.log(res,'resresresres')
     if (!res.ok) throw new Error('Payment initialization failed');
     return res.json();
   }
@@ -32,21 +33,39 @@ export interface InitializeResponse {
     user_wallet_balance: number;
     user_points: number;
   };
+
+  type TxParams = {
+    page?: number;
+    pageSize?: number;
+    startDate?: string;
+    endDate?: string;
+  };
   
   
   export async function fetchTransactions(
-    headers: Record<string,string>,
-    start?: string,
-    end?: string
-  ): Promise<Transaction[]> {
-    const params = new URLSearchParams();
-    if (start) params.set('start', start);
-    if (end)   params.set('end',   end);
+    headers: Record<string, string>,
+    params: TxParams = {}
+  ) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+    });
   
-    const res = await fetch(API_BASE_URL+`/api/payments/transactions?${params}`, { headers });
-    if (!res.ok) throw new Error('Failed to load transactions');
-    return res.json();
+    const res = await fetch(`${API_BASE_URL}/api/payments/transactions?${qs.toString()}`, {
+      headers,
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json() as Promise<{
+      data: Transaction[];
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+      hasMore: boolean;
+      nextPage: number | null;
+    }>;
   }
+  
  
  
   export async function fetchSysdetails(

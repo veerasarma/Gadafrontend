@@ -3,13 +3,14 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Gauge, Users, Settings,Signpost } from 'lucide-react';
+import { Menu, Gauge, Users, Settings,Signpost,BookOpen } from 'lucide-react';
 
 const nav = [
   { to: '/admin', label: 'Dashboard', icon: Gauge },
   { to: '/admin/users', label: 'Users', icon: Users },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
   { to: '/admin/posts', label: 'Posts', icon: Settings },
+  { to: '/admin/pages', label: 'Pages', icon: BookOpen },
 ];
 
 export default function AdminLayout() {

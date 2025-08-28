@@ -1,114 +1,91 @@
-// src/pages/admin/AdminPosts.tsx
+// src/pages/admin/AdminPages.tsx
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useAuthHeader } from '@/hooks/useAuthHeader';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthHeader } from '@/hooks/useAuthHeader';
+import { toast } from 'sonner';
+
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
 
-/* ---------- types ---------- */
-type PostRow = {
-  id: string;
-  authorId: string;
-  type: string;
-  authorUsername: string;
-  content: string;
-  createdAt: string;
-  isDeleted: 0|1;
-  isShadowHidden: 0|1;
-  likeCount: number;
-  commentCount: number;
-};
-
-type PostStats = {
-  totalPosts: number;
-  pendingPosts: number;
-  totalComments: number;
-  totalReactions: number;
-};
-
-/* ---------- small card ---------- */
-function StatCard({
-  label,
-  value,
-  gradient
-}: {
-  label: string;
-  value: number | string;
-  gradient: string; // e.g. "from-fuchsia-600 to-purple-500"
-}) {
+/* ----- small metric card (same pattern as AdminPosts) ----- */
+function StatCard({ label, value, gradient }: { label: string; value: number | string; gradient: string }) {
   return (
     <div className={`rounded-3xl p-6 text-white shadow-sm bg-gradient-to-r ${gradient} relative overflow-hidden`}>
       <div className="text-4xl md:text-5xl font-extrabold tracking-tight">
         {typeof value === 'number' ? value.toLocaleString() : value}
       </div>
       <div className="mt-2 text-xl opacity-95">{label}</div>
-      {/* soft decorative circle */}
       <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-white/15 pointer-events-none" />
     </div>
   );
 }
 
-export default function AdminPosts() {
+/* ---------- types ---------- */
+type PageRow = {
+  id: string;
+  handle: string;
+  title: string;
+  picture?: string | null;
+  cover?: string | null;
+  likes: number;
+  verified: boolean;
+  adminName: string;
+  createdAt: string;
+};
+
+type PageStats = {
+  totalPages: number;
+  verifiedPages: number;
+  totalLikes: number;
+};
+
+export default function AdminPages() {
   const { accessToken } = useAuth();
   const headers = useAuthHeader(accessToken);
   const ready = useMemo(() => 'Authorization' in headers, [headers]);
 
-  const [rows, setRows] = useState<PostRow[]>([]);
-  const [status, setStatus] = useState<'all'|'visible'|'shadow'|'deleted'>('all');
+  // list state
+  const [rows, setRows] = useState<PageRow[]>([]);
+  const [status, setStatus] = useState<'all'|'verified'|'unverified'>('all');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-
-  // list meta
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [hasPrev, setHasPrev] = useState(false);
   const [hasNext, setHasNext] = useState(false);
 
-  // stats strip
-  const [stats, setStats] = useState<PostStats>({
-    totalPosts: 0,
-    pendingPosts: 0,
-    totalComments: 0,
-    totalReactions: 0,
-  });
+  // metrics
+  const [stats, setStats] = useState<PageStats>({ totalPages: 0, verifiedPages: 0, totalLikes: 0 });
 
   const fetchStats = async () => {
     try {
-      // expected response: { totalPosts, pendingPosts, totalComments, totalReactions }
-      const r = await fetch(`${API_BASE_URL}/api/admin/posts/metrics`, { headers });
-      if (!r.ok) throw new Error('Failed to load stats');
+      const r = await fetch(`${API_BASE_URL}/api/admin/pages/metrics`, { headers });
+      if (!r.ok) throw new Error('Metrics failed');
       const s = await r.json();
       setStats({
-        totalPosts: Number(s.totalPosts || 0),
-        pendingPosts: Number(s.pendingPosts || 0),
-        totalComments: Number(s.totalComments || 0),
-        totalReactions: Number(s.totalReactions || 0),
+        totalPages: Number(s.totalPages || 0),
+        verifiedPages: Number(s.verifiedPages || 0),
+        totalLikes: Number(s.totalLikes || 0),
       });
     } catch (e:any) {
-      // don’t block UI; show toast once
-      console.warn('[admin posts] metrics load failed:', e?.message);
-      // optional: toast.error('Failed to load metrics', { description: e?.message });
+      console.warn('[admin pages] metrics load failed:', e?.message);
     }
   };
 
   const load = async () => {
     try {
       const params = new URLSearchParams({
-        status,
-        search: q,
-        page: String(page),
-        limit: String(limit),
+        status, search: q, page: String(page), limit: String(limit),
       });
-      const r = await fetch(`${API_BASE_URL}/api/admin/posts?${params.toString()}`, { headers });
-      if (!r.ok) throw new Error('Failed to load posts');
+      const r = await fetch(`${API_BASE_URL}/api/admin/pages?${params}`, { headers });
+      if (!r.ok) throw new Error('Load failed');
       const data = await r.json();
       setRows(data.items || []);
       setTotal(data.total || 0);
@@ -120,29 +97,25 @@ export default function AdminPosts() {
     }
   };
 
-  function formatDate(iso: string) {
+  function formatDate(iso?: string) {
     if (!iso) return '';
     const d = new Date(iso);
-    if (Number.isNaN(d as any)) return String(iso);
-    return d.toLocaleString(undefined, {
-      year: 'numeric', month: 'short', day: '2-digit',
-      hour: '2-digit', minute: '2-digit'
-    });
+    return Number.isNaN(d as any) ? String(iso) : d.toLocaleString();
   }
 
-  useEffect(() => { if (ready) { fetchStats(); } }, [ready]);
+  useEffect(() => { if (ready) fetchStats(); }, [ready]);
   useEffect(() => { if (ready) load(); }, [ready, status, page, limit]);
 
-  const act = async (id: string, action: 'remove'|'restore'|'shadow'|'unshadow') => {
+  // actions
+  const toggleVerify = async (row: PageRow) => {
     try {
-      const r = await fetch(`${API_BASE_URL}/api/admin/posts/${id}`, {
-        method: 'DELETE',
+      const r = await fetch(`${API_BASE_URL}/api/admin/pages/${row.id}/verify`, {
+        method: 'PATCH',
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ verified: !row.verified })
       });
-      if (!r.ok) throw new Error('Action failed');
-      toast.success('Post has been deleted');
-      // refresh both list and metrics (counts may change)
+      if (!r.ok) throw new Error('Verify failed');
+      toast.success(!row.verified ? 'Page verified' : 'Page unverified');
       load();
       fetchStats();
     } catch (e:any) {
@@ -150,50 +123,62 @@ export default function AdminPosts() {
     }
   };
 
-  // build compact page window
+  const removePage = async (row: PageRow) => {
+    if (!window.confirm(`Delete "${row.title}"? This cannot be undone.`)) return;
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/admin/pages/${row.id}`, {
+        method: 'DELETE',
+        headers
+      });
+      if (!r.ok) throw new Error('Delete failed');
+      toast.success('Page deleted');
+      load();
+      fetchStats();
+    } catch (e:any) {
+      toast.error('Failed', { description: e?.message });
+    }
+  };
+
+  // pagination window
   function pageWindow(curr: number, total: number) {
-    const pages: (number | '…')[] = [];
-    const push = (v: number | '…') => pages.push(v);
-    if (total <= 7) { for (let i=1;i<=total;i++) push(i); return pages; }
-    push(1);
-    if (curr > 3) push('…');
-    const start = Math.max(2, curr - 1);
-    const end   = Math.min(total - 1, curr + 1);
-    for (let i=start; i<=end; i++) push(i);
-    if (curr < total - 2) push('…');
-    push(total);
-    return pages;
+    const out:(number|'…')[] = [];
+    if (total <= 7) { for (let i=1;i<=total;i++) out.push(i); return out; }
+    out.push(1);
+    if (curr > 3) out.push('…');
+    for (let i=Math.max(2, curr-1); i<=Math.min(total-1, curr+1); i++) out.push(i);
+    if (curr < total-2) out.push('…');
+    out.push(total);
+    return out;
   }
   const pages = pageWindow(page, totalPages);
 
+  const img = (p?: string|null) => p ? `${API_BASE_URL}/uploads/${p}` : `${API_BASE_URL}/uploads//profile/defaultavatar.png`;
+
   return (
     <div className="bg-white rounded-xl shadow-sm border p-4">
-      {/* --- KPI STRIP (TOP) --- */}
+      {/* KPI strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-        <StatCard label="Posts"          value={stats.totalPosts}     gradient="from-fuchsia-600 to-purple-500" />
-        {/* <StatCard label="Pending Posts"  value={stats.pendingPosts}   gradient="from-orange-500 to-amber-400" /> */}
-        <StatCard label="Comments"       value={stats.totalComments}  gradient="from-indigo-500 to-violet-500" />
-        <StatCard label="Reactions"      value={stats.totalReactions} gradient="from-sky-500 to-blue-500" />
+        <StatCard label="Pages"          value={stats.totalPages}    gradient="from-fuchsia-600 to-purple-500" />
+        <StatCard label="Verified Pages" value={stats.verifiedPages} gradient="from-violet-500 to-indigo-500" />
+        <StatCard label="Total Likes"    value={stats.totalLikes}    gradient="from-sky-500 to-blue-500" />
       </div>
 
-      {/* --- filters / header row --- */}
+      {/* Filters */}
       <div className="flex flex-col md:flex-row gap-2 md:items-center justify-between mb-4">
         <div className="flex flex-col sm:flex-row gap-2">
-          {/* If you want status filter back, uncomment */}
-          {/* <Select value={status} onValueChange={(v)=>{setPage(1); setStatus(v as any);}}>
+          <Select value={status} onValueChange={(v)=>{setPage(1); setStatus(v as any);}}>
             <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              <SelectItem value="visible">Visible</SelectItem>
-              <SelectItem value="shadow">Shadow-hidden</SelectItem>
-              <SelectItem value="deleted">Deleted</SelectItem>
+              <SelectItem value="verified">Verified</SelectItem>
+              <SelectItem value="unverified">Unverified</SelectItem>
             </SelectContent>
-          </Select> */}
+          </Select>
 
           <Input
-            placeholder="Search content/author"
+            placeholder="Search title/handle"
             value={q}
-            onChange={e=>setQ(e.target.value)}
+            onChange={(e)=>setQ(e.target.value)}
             onKeyDown={(e)=>e.key==='Enter' && (setPage(1), load())}
             className="w-full sm:w-64"
           />
@@ -215,16 +200,16 @@ export default function AdminPosts() {
         </div>
       </div>
 
-      {/* --- table --- */}
+      {/* Table */}
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>ID</TableHead>
-              <TableHead>Author</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead>Page</TableHead>
+              <TableHead>Admin</TableHead>
               <TableHead>Likes</TableHead>
-              <TableHead>Comments</TableHead>
+              <TableHead>Verified</TableHead>
               <TableHead>Link</TableHead>
               <TableHead>Datetime</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -234,21 +219,31 @@ export default function AdminPosts() {
             {rows.map(r => (
               <TableRow key={r.id}>
                 <TableCell>{r.id}</TableCell>
-                <TableCell>{r.authorUsername}</TableCell>
-                <TableCell>{r.type}</TableCell>
-                <TableCell>{r.likeCount}</TableCell>
-                <TableCell>{r.commentCount}</TableCell>
-                <TableCell><Link target="_blank" to={`/posts/${r.id}`}>View</Link></TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <img src={img(r.picture)} className="h-8 w-8 rounded-full object-cover bg-gray-100" />
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{r.title}</div>
+                      <div className="text-xs text-gray-500 truncate">@{r.handle}</div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="whitespace-nowrap">{r.adminName || '-'}</TableCell>
+                <TableCell>{r.likes}</TableCell>
+                <TableCell>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${r.verified ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                    {r.verified ? 'Yes' : 'No'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <Link to={`/pages/${r.handle}`} target="_blank" className="text-blue-600 hover:underline">View</Link>
+                </TableCell>
                 <TableCell>{formatDate(r.createdAt)}</TableCell>
                 <TableCell className="text-right space-x-2">
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={async () => {
-                      if (!window.confirm('Are you sure you want to Delete this?')) return;
-                      await act(r.id, 'remove');
-                    }}
-                  >
+                  <Button size="sm" variant="outline" onClick={()=>toggleVerify(r)}>
+                    {r.verified ? 'Unverify' : 'Verify'}
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={()=>removePage(r)}>
                     Remove
                   </Button>
                 </TableCell>
@@ -258,7 +253,7 @@ export default function AdminPosts() {
         </Table>
       </div>
 
-      {/* --- pagination --- */}
+      {/* Pagination */}
       <div className="mt-4 flex items-center justify-between">
         <div className="text-sm text-gray-500">
           Showing {(rows.length ? (page - 1) * limit + 1 : 0)}–{(page - 1) * limit + rows.length} of {total}
@@ -276,19 +271,12 @@ export default function AdminPosts() {
               <PaginationPrevious onClick={()=>setPage(p=>Math.max(1,p-1))} className={hasPrev ? '' : 'pointer-events-none opacity-50'} />
             </PaginationItem>
 
-            {pages.map((p, idx) =>
+            {pageWindow(page, totalPages).map((p, i) =>
               p === '…' ? (
-                <PaginationItem key={`ell-${idx}`}>
-                  <span className="px-2 text-gray-400">…</span>
-                </PaginationItem>
+                <PaginationItem key={`e-${i}`}><span className="px-2 text-gray-400">…</span></PaginationItem>
               ) : (
-                <PaginationItem key={p}>
-                  <PaginationLink
-                    isActive={p === page}
-                    onClick={() => setPage(p as number)}
-                  >
-                    {p}
-                  </PaginationLink>
+                <PaginationItem key={p as number}>
+                  <PaginationLink isActive={p===page} onClick={()=>setPage(p as number)}>{p}</PaginationLink>
                 </PaginationItem>
               )
             )}

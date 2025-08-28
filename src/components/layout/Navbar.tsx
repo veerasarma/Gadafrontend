@@ -49,6 +49,7 @@ import {
   fetchBalance,
 } from "@/services/paymentService";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import ConversationsFlyout from "@/components/messenger/ConversationsFlyout";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8085/";
@@ -565,12 +566,13 @@ export function Navbar() {
             >
               <Users className="h-6 w-6" />
             </Link>
-            <Link
+            {/* <Link
               to="/messages"
               className="p-2 text-gray-600 hover:text-[#1877F2] hover:bg-gray-100 rounded-full"
             >
               <MessageCircle className="h-6 w-6" />
-            </Link>
+            </Link> */}
+            <ConversationsFlyout />
 
             <NotificationBell />
 

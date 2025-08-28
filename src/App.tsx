@@ -41,6 +41,9 @@ import EventCreate from '@/pages/EventCreate';
 import EventsInvites from '@/pages/EventsInvites';
 import EventView from '@/pages/EventView';
 import WatchPage from '@/pages/Watch';
+import AffiliatesPage from '@/pages/AffiliatesPage';
+import { ChatDockProvider } from "@/contexts/ChatDockContext";
+
 
 
 
@@ -90,6 +93,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+    <ChatDockProvider>
       <PostProvider>
        
           <TooltipProvider>
@@ -153,6 +157,7 @@ const App = () => (
                   <Route path="/events/invites" element={<EventsInvites />} />
                   <Route path="/events/:id" element={<EventView />} />
                   <Route path="/watch" element={<WatchPage />} />
+                  <Route path="/affiliates" element={<AffiliatesPage />} />
                  
                   
 
@@ -216,6 +221,7 @@ const App = () => (
             </NotificationProvider>
           </TooltipProvider>
       </PostProvider>
+      </ChatDockProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

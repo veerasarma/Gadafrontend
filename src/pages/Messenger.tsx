@@ -15,6 +15,8 @@ import { Loader2, Image as ImageIcon, Mic, Send, Plus } from 'lucide-react';
 import { stripUploads } from '@/lib/url';
 import NewChatModal from '@/components/messenger/NewChatModal';
 import { connectSocket } from '@/services/socketClient';
+import { useChatDock } from "@/contexts/ChatDockContext";
+
 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8085';
@@ -42,6 +44,9 @@ export default function Messenger() {
     const v = searchParams.get('user');
     return v ? Number(v) : null;
   }, [searchParams]);
+
+  const { openConversation } = useChatDock();
+
 
   const [convs, setConvs] = useState<Conversation[] | null>(null);
   const [convLoading, setConvLoading] = useState(false);
@@ -263,9 +268,14 @@ export default function Messenger() {
           <div className="flex-1 overflow-y-auto overscroll-contain pr-1">
           <div className="space-y-1">
             {Array.isArray(convs) && convs.map(c => (
+              // <button
+              //   key={c.conversationId}
+              //   onClick={() => setActiveId(c.conversationId)}
+              //   className={`w-full flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-50 ${activeId===c.conversationId?'bg-gray-50':''}`}
+              // >
               <button
                 key={c.conversationId}
-                onClick={() => setActiveId(c.conversationId)}
+                onClick={() => openConversation(c.conversationId, c.peer)}   // <— open floating chat
                 className={`w-full flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-50 ${activeId===c.conversationId?'bg-gray-50':''}`}
               >
                 <Avatar className="h-9 w-9">
@@ -286,7 +296,7 @@ export default function Messenger() {
         </div>
 
         {/* Right: chat */}
-        <div className="bg-white rounded-lg shadow md:col-span-2 flex flex-col h-[70vh]">
+        {/* <div className="bg-white rounded-lg shadow md:col-span-2 flex flex-col h-[70vh]">
           {!activeId ? (
             <div className="flex-1 flex items-center justify-center text-gray-500">
               Select a conversation or click <span className="font-medium mx-1">New</span> to start one
@@ -350,7 +360,7 @@ export default function Messenger() {
               </div>
             </>
           )}
-        </div>
+        </div> */}
       </div>
 
       {/* New chat modal */}

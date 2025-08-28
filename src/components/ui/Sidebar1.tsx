@@ -18,7 +18,8 @@ import {
   CircleDollarSign,
   Wallet,
   UserPlus,
-  MessageCircle
+  MessageCircle,
+  HandCoins
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -34,7 +35,7 @@ const mainItems: SidebarItem[] = [
   { name: "Scheduled", icon: Calendar, route: "/scheduled" },
   { name: "Memories", icon: Clock, route: "/memories" },
   { name: "Packages", icon: CircleDollarSign, route: "/packages" },
-  { name: "Messages", icon: MessageCircle, route: "/messages" },
+  { name: "Affiliates", icon: HandCoins, route: "/affiliates" },
 ];
 
 const mineSubmenu: SidebarItem[] = [

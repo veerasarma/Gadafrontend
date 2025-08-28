@@ -22,6 +22,7 @@ import {
 import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { toast } from 'sonner';
 import { encodeId } from "@/lib/idCipher";
+import EditPostModal from "@/components/post/EditPostModal";
 
 const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 const API_BASE = API_BASE_RAW.replace(/\/+$/, '');
@@ -257,6 +258,7 @@ export function PostItem({ post, trackViews = true }: PostItemProps) {
   // boosted state (local, with fallback to post.boosted)
   const [boostBusy, setBoostBusy] = useState(false);
   const [boosted, setBoosted] = useState<boolean>(String(post.boosted) === '1' || post.boosted === true);
+  const [editOpen, setEditOpen] = useState(false);
 
   const postAuthor = post.author;
 
@@ -550,6 +552,15 @@ async function clearReaction() {
                     </>
                   )}
 
+                {user && String(user.id) === String(postAuthor.id) && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setEditOpen(true)} className="text-gray-600">
+                        Edit post
+                      </DropdownMenuItem>
+                    </>
+                  )}
+
                   {/* Delete (author only) */}
                   {user && String(user.id) === String(postAuthor.id) && (
                     <>
@@ -566,7 +577,7 @@ async function clearReaction() {
         </CardHeader>
 
         <CardContent className="p-4">
-          {/* {post.content && <p className="mb-3 whitespace-pre-line">{post.content}</p>} */}
+    
           {post.content && <CollapsibleText text={post.content} maxLines={6} charThreshold={400} />}
 
           {/* Images */}
@@ -593,40 +604,6 @@ async function clearReaction() {
               ))}
             </div>
           )}
-{/* 
-          <div className="flex items-center justify-between mt-2 text-sm text-gray-500">
-            {post.likes.length > 0 && (
-              <div className="flex items-center">
-                <div className="flex items-center justify-center bg-[#1877F2] text-white rounded-full p-1 h-5 w-5 mr-1">
-                  <ThumbsUp className="h-3 w-3" />
-                </div>
-                {post.likes.length}
-              </div>
-            )}
-            {post.comments.length > 0 && <div>{post.comments.length} comments</div>}
-            <div className="text-sm text-gray-500 mt-2">{post.shareCount} Shares</div>
-          </div> */}
-
-          {/* <div className="flex items-center justify-between mt-2 text-sm text-gray-500">
-          <div className="flex items-center">
-            {reactions.slice(0, 3).map((r) => {
-              const def = catalog.find(c => c.reaction === r.reaction);
-              const img = def?.image || `reactions/${r.reaction}.png`;
-              return (
-                <img
-                  key={r.reaction}
-                  src={`${API_BASE}/uploads/${img.replace(/^\/+/, '')}`}
-                  alt={def?.title || r.reaction}
-                  title={`${def?.title || r.reaction} • ${r.c}`}
-                  className="h-5 w-5 mr-1"
-                />
-              );
-            })}
-            {totalReacts > 0 && <span>{totalReacts}</span>}
-          </div>
-          {post.comments.length > 0 && <div>{post.comments.length} comments</div>}
-          <div className="text-sm text-gray-500 mt-2">{post.shareCount} Shares</div>
-          </div> */}
 
         </CardContent>
 
@@ -741,6 +718,17 @@ async function clearReaction() {
         </CardFooter>
 
         <ShareModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} onShare={(comment) => sharePost(post.id, comment)} />
+
+         <EditPostModal
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          postId={post?.id ?? post?.post_id}
+          initialText={post?.content ?? ""}
+          initialPrivacy={post?.privacy ?? "public"}
+          authKey={(authHeaders as any)?.Authorization ?? ""}
+          onSaved={(updated) => {post.content = updated.text; console.log(updated,'updatedupdated')}}
+        />
+        
 
         {(post.comments.length > 0 || isCommenting) && (
           <div className="p-4 pt-0">

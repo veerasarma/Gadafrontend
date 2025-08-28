@@ -22,7 +22,7 @@ export default function NotificationsPage() {
       <div className="flex flex-1 overflow-hidden px-4 lg:px-8 py-6">
         <div className="flex flex-1 max-w-[1600px] w-full mx-auto gap-6">
           <aside className="hidden lg:block lg:w-1/5">
-            <div className="sticky top-16"><Sidebar /></div>
+            <div className="sticky"><Sidebar /></div>
           </aside>
           <main className="flex-1 overflow-y-auto">
             <div className="bg-white rounded-lg shadow">
@@ -79,6 +79,7 @@ function simpleText(t: string) {
     case 'friend_request': return 'sent you a friend request';
     case 'friend_accept': return 'accepted your friend request';
     case 'reel_like': return 'liked your reel';
+    case 'new_message': return 'sent new message.';
     default: return 'sent you a notification';
   }
 }

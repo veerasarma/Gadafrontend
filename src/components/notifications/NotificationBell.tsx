@@ -1,28 +1,25 @@
 // src/components/notifications/NotificationBell.tsx
 import { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Bell } from 'lucide-react';
+import { Bell, BellOff } from 'lucide-react';
+import { useLocation, Link } from 'react-router-dom';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { Link } from 'react-router-dom';
 import { PostDetailModal } from '@/components/post/PostDetailModal';
 import { stripUploads } from '@/lib/url';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 
-
 export default function NotificationBell() {
-  const { items, unreadCount, markAll, markSeenNow } = useNotifications();
+  const { items, unreadCount, markAll, markSeenNow, soundEnabled, setSoundEnabled } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const state = location.state as any;
-
   const isModal = state?.modal === true;
-
 
   useEffect(() => {
     if (!open) return;
     markSeenNow().catch(console.error);
-  }, [open]);
+  }, [open]); // eslint-disable-line
 
   // close on outside click
   useEffect(() => {
@@ -52,10 +49,28 @@ export default function NotificationBell() {
         <div className="absolute right-0 mt-2 w-96 bg-white shadow-xl rounded-lg overflow-hidden z-50">
           <div className="flex items-center justify-between px-4 py-2 border-b">
             <div className="font-semibold">Notifications</div>
-            <button onClick={() => markAll().catch(console.error)} className="text-sm text-blue-600 hover:underline">
-              Mark all as read
-            </button>
+            <div className="flex items-center gap-2">
+              {/* 🔊 Mute/Unmute toggle */}
+              <button
+                onClick={() => setSoundEnabled(v => !v)}
+                className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+                title={soundEnabled ? "Mute notification sound" : "Unmute notification sound"}
+              >
+                {soundEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+                <span>{soundEnabled ? "Sound on" : "Muted"}</span>
+              </button>
+
+              <span className="text-gray-300">•</span>
+
+              <button
+                onClick={() => markAll().catch(console.error)}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Mark all as read
+              </button>
+            </div>
           </div>
+
           <ul className="max-h-96 overflow-y-auto divide-y">
             {items.slice(0, 20).map(n => (
               <li key={n.id} className={`p-3 ${!n.readAt ? 'bg-blue-50' : ''}`}>
@@ -66,12 +81,14 @@ export default function NotificationBell() {
               <li className="p-6 text-center text-gray-500">No notifications</li>
             )}
           </ul>
+
           <div className="p-2 text-center">
             <Link to="/notifications" className="text-sm text-blue-600 hover:underline">See all</Link>
           </div>
         </div>
       )}
-       {isModal && state?.postId && (
+
+      {isModal && state?.postId && (
         <PostDetailModal
           postId={String(state.postId)}
           open={true}
@@ -85,15 +102,18 @@ export default function NotificationBell() {
 function NotifRow({ n }: { n: any }) {
   const text = renderText(n);
   const href = renderLink(n);
-  const loc = useLocation(); // React Router location (plain)
-const returnTo = `${loc.pathname}${loc.search}${loc.hash}`;
+  const loc = useLocation();
+  const returnTo = `${loc.pathname}${loc.search}${loc.hash}`;
+
   return (
-    <Link
-    to={href}
-    state={{ isModal: true, returnTo }}   // ✅ ONLY plain JSON
-  >
-       {/* <Link to={href} className="flex items-start gap-3">  */}
-      <img src={(n.actorAvatar)?API_BASE_URL+'/uploads/'+stripUploads(n.actorAvatar): API_BASE_URL+'/uploads//profile/defaultavatar.png'} alt="" className="h-9 w-9 rounded-full object-cover" />
+    <Link to={href} state={{ isModal: true, returnTo }} className="flex items-start gap-3">
+      <img
+        src={(n.actorAvatar)
+          ? API_BASE_URL + '/uploads/' + stripUploads(n.actorAvatar)
+          : API_BASE_URL + '/uploads//profile/defaultavatar.png'}
+        alt=""
+        className="h-9 w-9 rounded-full object-cover"
+      />
       <div className="flex-1">
         <div className="text-sm">
           <span className="font-semibold">{n.actorName}</span> {text}
@@ -115,6 +135,7 @@ function renderText(n: any) {
     case 'reel_like': return 'liked your reel.';
     case 'reel_comment': return 'commented on your reel.';
     case 'group_post': return 'posted in your group.';
+    case 'new_message': return 'sent new message.';
     default: return 'sent you a notification.';
   }
 }

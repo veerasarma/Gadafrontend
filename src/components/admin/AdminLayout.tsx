@@ -11,6 +11,7 @@ import {
   Newspaper,
   LandPlot,
   Landmark,
+  CircleDollarSign,
 } from "lucide-react";
 
 const nav = [
@@ -20,6 +21,11 @@ const nav = [
   { to: "/admin/posts", label: "Posts", icon: Newspaper },
   { to: "/admin/representatives", label: "Representatives", icon: LandPlot },
   { to: "/admin/banktransfers", label: "Bank Transfers", icon: Landmark },
+  {
+    to: "/admin/earningspayments",
+    label: "Earning-Payments",
+    icon: CircleDollarSign,
+  },
 ];
 
 export default function AdminLayout() {

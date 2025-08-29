@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, PencilLine, UserPlus } from 'lucide-react';
 import { ProfileImageUpload } from './ProfileImageUpload';
 import { stripUploads } from '@/lib/url';
+import EditProfileModal from "@/components/profile/EditProfileModal";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 
 import { encodeId } from '@/lib/idCipher';
@@ -19,7 +20,9 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
   const [isCurrentUser] = useState(user?.id == profile.user_id);
   const [isProfileImageModalOpen, setIsProfileImageModalOpen] = useState(false);
   const [isCoverImageModalOpen, setIsCoverImageModalOpen] = useState(false);
-
+  const [editOpen, setEditOpen] = useState(false);
+  console.log(profile.user_id,user?.id,'profile.user_id')
+  console.log(isCurrentUser,'isCurrentUserisCurrentUserisCurrentUserisCurrentUser')
   
   const getInitials = (username: string) => {
     return username

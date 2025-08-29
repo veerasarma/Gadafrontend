@@ -7,6 +7,7 @@ import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { PostItem } from '@/components/post/PostItem';
 import { decodeId } from '@/lib/idCipher';
 import { stripUploads } from '@/lib/url';
+import { Camera } from 'lucide-react';
 import {
   fetchProfileSummary,
   fetchProfilePosts,
@@ -14,11 +15,13 @@ import {
 } from '@/services/profileService';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import EditProfileModal from "@/components/profile/EditProfileModal";
+import { ProfileImageUpload } from "@/components/profile/ProfileImageUpload"; // ✅ reuse your existing uploader
 
 const API_BASE_URL: string =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8085';
 
-// Types
+// Types (unchanged)
 type Summary = {
   user: { id: number|string; username: string; fullName: string; avatar?: string|null; cover?: string|null; bio?: string };
   counts: { friends: number; posts: number; photos: number };
@@ -40,8 +43,13 @@ type Post = {
 export default function Profile() {
   const { id: encoded } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, isLoading: authLoading, accessToken } = useAuth();
+  const { user, isLoading: authLoading, accessToken, updateProfile } = useAuth(); // ✅ bring updateProfile like in header
   const headers = useAuthHeader(accessToken);
+  const [editOpen, setEditOpen] = useState(false);
+
+  // NEW: image edit modals
+  const [isProfileImageModalOpen, setIsProfileImageModalOpen] = useState(false);
+  const [isCoverImageModalOpen, setIsCoverImageModalOpen] = useState(false);
 
   // Resolve numeric id from url param (supports encoded ids)
   const userId = useMemo(() => {
@@ -78,7 +86,6 @@ export default function Profile() {
   }, [authLoading, user, navigate]);
 
   // ------------------------- SUMMARY (guarded) -------------------------
-  // Guard so the same userId is fetched only once (avoids StrictMode double-call).
   const summaryInitRef = useRef<{userId: number|null; done: boolean}>({ userId: null, done: false });
 
   useEffect(() => {
@@ -106,7 +113,6 @@ export default function Profile() {
 
   // -------------------------- POSTS (guarded) --------------------------
   const postsLoadingRef = useRef(false);
-  // Init guard per (userId, tab='posts')
   const postsInitKeyRef = useRef<string>('');
 
   const loadMorePosts = async (reset = false) => {
@@ -123,7 +129,7 @@ export default function Profile() {
         headersRef.current
       );
 
-      setPosts(prev => reset ? items : [...prev, ...items]);
+      setPosts(prev => reset ? items : [...(prev || []), ...items]);
       setPostCursor(nextCursor ?? null);
       if (!nextCursor || items.length === 0) setPostsDone(true);
     } catch (e) {
@@ -134,7 +140,6 @@ export default function Profile() {
     }
   };
 
-  // First load for posts tab (only once per user)
   useEffect(() => {
     if (!userId) return;
     if (tab !== 'posts') return;
@@ -144,7 +149,6 @@ export default function Profile() {
     if (postsInitKeyRef.current === key) return; // already initialized for this user
     postsInitKeyRef.current = key;
 
-    // Reset then fetch first page (microtask ensures resets apply before fetch)
     setPosts(null);
     setPostCursor(null);
     setPostsDone(false);
@@ -179,7 +183,6 @@ export default function Profile() {
     }
   };
 
-  // First load for friends tab (only once per user)
   useEffect(() => {
     if (!userId) return;
     if (tab !== 'friends') return;
@@ -222,6 +225,22 @@ export default function Profile() {
   const avatarUrl = summary.user.avatar ? (API_BASE_URL + '/uploads/' + stripUploads(summary.user.avatar)) : '';
   const coverUrl = summary.user.cover ? (API_BASE_URL + '/uploads/' + stripUploads(summary.user.cover)) : '';
 
+  // --- NEW: handlers to persist & reflect changes immediately ---
+  const isMe = summary.relationship === 'me';
+
+  const handleProfileImageSave = (imageUrl: string) => {
+    // update global auth profile (same pattern as header) and local summary
+    updateProfile?.({ profileImage: imageUrl });
+    setSummary(s => s ? ({ ...s, user: { ...s.user, avatar: imageUrl } }) : s);
+    setIsProfileImageModalOpen(false);
+  };
+
+  const handleCoverImageSave = (imageUrl: string) => {
+    updateProfile?.({ coverImage: imageUrl });
+    setSummary(s => s ? ({ ...s, user: { ...s.user, cover: imageUrl } }) : s);
+    setIsCoverImageModalOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
@@ -229,17 +248,30 @@ export default function Profile() {
       {/* Cover + avatar */}
       <div className="bg-white shadow">
         <div className="relative max-w-5xl mx-auto">
-          <div className="h-56 sm:h-64 w-full bg-gray-200 overflow-hidden rounded-b-lg">
+          <div className="h-56 sm:h-64 w-full bg-gray-200 overflow-hidden rounded-b-lg relative">
             {coverUrl ? (
               <img src={coverUrl} alt="" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-gradient-to-r from-slate-200 to-slate-300" />
             )}
+
+            {/* ✅ edit cover (only me) */}
+            {isMe && (
+              <Button
+                size="icon"
+                variant="secondary"
+                className="absolute bottom-3 right-3 bg-white/80 backdrop-blur-sm hover:bg-white"
+                onClick={() => setIsCoverImageModalOpen(true)}
+                aria-label="Change cover photo"
+              >
+                <Camera className="h-5 w-5" />
+              </Button>
+            )}
           </div>
 
           <div className="px-4 sm:px-6">
             <div className="flex items-end gap-4 -mt-10 sm:-mt-12">
-              <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full ring-4 ring-white overflow-hidden bg-gray-200">
+              <div className="relative h-24 w-24 sm:h-32 sm:w-32 rounded-full ring-4 ring-white overflow-hidden bg-gray-200">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover" />
                 ) : (
@@ -247,7 +279,21 @@ export default function Profile() {
                     {fullName?.[0] ?? 'U'}
                   </div>
                 )}
+
+                {/* ✅ edit avatar (only me) */}
+                {isMe && (
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="absolute bottom-1 right-1 bg-white/85 hover:bg-white h-8 w-8 rounded-full shadow"
+                    onClick={() => setIsProfileImageModalOpen(true)}
+                    aria-label="Change profile picture"
+                  >
+                    <Camera className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
+
               <div className="pb-2">
                 <h1 className="text-2xl sm:text-3xl font-bold">{fullName}</h1>
                 <div className="text-gray-600 text-sm">
@@ -260,10 +306,9 @@ export default function Profile() {
             <div className="flex justify-end gap-2 pb-4">
               {summary.relationship !== 'me' && (
                 <>
-                  {/* <Button variant="secondary">Message</Button> */}
                   <Button variant="secondary" onClick={() => navigate(`/messages?user=${summary.user.id}`)}>
-  Message
-</Button>
+                    Message
+                  </Button>
                   <Button className="bg-[#1877F2] hover:bg-[#166FE5]">
                     {summary.relationship === 'friends'
                       ? 'Friends'
@@ -273,6 +318,10 @@ export default function Profile() {
                   </Button>
                 </>
               )}
+              {isMe && (
+                <Button variant="outline" onClick={() => setEditOpen(true)}>Edit Profile</Button>
+              )}
+              <EditProfileModal open={editOpen} onOpenChange={setEditOpen} onSaved={() => window.location.reload()} />
             </div>
           </div>
         </div>
@@ -301,42 +350,38 @@ export default function Profile() {
           )}
         </div>
 
-        {/* Tab content */}
+        {/* Posts Tab */}
         {tab === 'posts' && (
-  <div className="space-y-4">
-    {/* Loading (first page) */}
-    {posts === null && postsLoading && (
-      <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
-        Loading…
-      </div>
-    )}
+          <div className="space-y-4">
+            {posts === null && postsLoading && (
+              <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+                Loading…
+              </div>
+            )}
+            {Array.isArray(posts) && posts.length > 0 && (
+              <>
+                {posts.map((p) => (
+                  <PostItem key={p.id} post={p as any} />
+                ))}
 
-    {/* Loaded with items */}
-    {Array.isArray(posts) && posts.length > 0 && (
-      <>
-        {posts.map((p) => (
-          <PostItem key={p.id} post={p as any} />
-        ))}
-
-        {!postsDone && (
-          <div className="flex justify-center">
-            <Button onClick={() => loadMorePosts(false)} disabled={postsLoading}>
-              {postsLoading ? 'Loading…' : 'Load more'}
-            </Button>
+                {!postsDone && (
+                  <div className="flex justify-center">
+                    <Button onClick={() => loadMorePosts(false)} disabled={postsLoading}>
+                      {postsLoading ? 'Loading…' : 'Load more'}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+            {posts !== null && posts.length === 0 && postsDone && !postsLoading && (
+              <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+                No posts yet
+              </div>
+            )}
           </div>
         )}
-      </>
-    )}
 
-    {/* Loaded but empty */}
-    {posts !== null && posts.length === 0 && postsDone && !postsLoading && (
-      <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
-        No posts yet
-      </div>
-    )}
-  </div>
-)}
-
+        {/* Friends Tab */}
         {tab === 'friends' && (
           <div className="bg-white rounded-lg shadow p-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -370,6 +415,7 @@ export default function Profile() {
           </div>
         )}
 
+        {/* Photos Tab */}
         {tab === 'photos' && (
           <div className="bg-white rounded-lg shadow p-4">
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
@@ -385,6 +431,24 @@ export default function Profile() {
           </div>
         )}
       </div>
+
+      {/* ✅ Uploader modals (reusing your existing component) */}
+      <ProfileImageUpload
+        isOpen={isProfileImageModalOpen}
+        onClose={() => setIsProfileImageModalOpen(false)}
+        onSave={handleProfileImageSave}
+        title="Change Profile Picture"
+        type="profile"
+        description="Upload a new profile picture or enter an image URL"
+      />
+      <ProfileImageUpload
+        isOpen={isCoverImageModalOpen}
+        onClose={() => setIsCoverImageModalOpen(false)}
+        onSave={handleCoverImageSave}
+        title="Change Cover Photo"
+        type="cover"
+        description="Upload a new cover photo or enter an image URL"
+      />
     </div>
   );
 }

@@ -14,9 +14,13 @@ import {
   fetchProfileFriends
 } from '@/services/profileService';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2,MessageCircle } from 'lucide-react';
 import EditProfileModal from "@/components/profile/EditProfileModal";
 import { ProfileImageUpload } from "@/components/profile/ProfileImageUpload"; // ✅ reuse your existing uploader
+import ConversationsFlyout from "@/components/messenger/ConversationsFlyout";
+import { useChatDock } from "@/contexts/ChatDockContext";
+
+
 
 const API_BASE_URL: string =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8085';
@@ -46,6 +50,8 @@ export default function Profile() {
   const { user, isLoading: authLoading, accessToken, updateProfile } = useAuth(); // ✅ bring updateProfile like in header
   const headers = useAuthHeader(accessToken);
   const [editOpen, setEditOpen] = useState(false);
+
+  const { openChatWith } = useChatDock();
 
   // NEW: image edit modals
   const [isProfileImageModalOpen, setIsProfileImageModalOpen] = useState(false);
@@ -306,9 +312,24 @@ export default function Profile() {
             <div className="flex justify-end gap-2 pb-4">
               {summary.relationship !== 'me' && (
                 <>
-                  <Button variant="secondary" onClick={() => navigate(`/messages?user=${summary.user.id}`)}>
-                    Message
-                  </Button>
+                  <Button
+      variant="secondary"
+      onClick={() =>
+        openChatWith(
+          Number(summary.user.id),
+          {
+            id: Number(summary.user.id),
+            username: summary.user.username,
+            fullName: summary.user.fullName,
+            avatar: summary.user.avatar || null,
+          }
+        )
+      }
+      aria-label={`Message ${summary.user.fullName || summary.user.username}`}
+    >
+      <MessageCircle className="h-4 w-4 mr-2" />
+      Message
+    </Button>
                   <Button className="bg-[#1877F2] hover:bg-[#166FE5]">
                     {summary.relationship === 'friends'
                       ? 'Friends'

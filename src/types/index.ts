@@ -13,6 +13,7 @@ export interface User {
   walletBalance:string;
   roles?: string[];
   packageactive:boolean;
+  packageName:string;
 }
 
 export interface Post {

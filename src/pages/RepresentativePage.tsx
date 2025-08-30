@@ -60,9 +60,9 @@ type RepRecord = RepForm & {
 };
 
 export default function RepresentativePage() {
-  const { accessToken } = useAuth();
+  const { user,accessToken } = useAuth();
   const headers = useAuthHeader(accessToken);
-
+  console.log(user,'useruseruser')
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [existing, setExisting] = useState<RepRecord | null>(null);
@@ -258,9 +258,7 @@ export default function RepresentativePage() {
                     <p className="text-sm text-amber-900">
                       Only VVIP user can request to be a Representative
                     </p>
-                    <p className="mt-1 text-2xl font-semibold tracking-wide text-amber-900">
-                    PORTAL WILL BE OPENED ON 30TH AUGUST 2025
-                    </p>
+                  
                   </div>
                   {/* ===== End highlight ===== */}
                   <Form {...form}>
@@ -435,10 +433,12 @@ export default function RepresentativePage() {
                             Cancel
                           </Button>
                         )}
+                        {user?.packageName && user?.packageName=='GADA VVIP' && (
+
                         <Button
                           type="submit"
-                          disabled={true}
-                          // disabled={submitting || (!isEditing && !!existing)}
+                          // disabled={true}
+                          disabled={submitting || (!isEditing && !!existing)}
                           className="bg-[#1877F2] hover:bg-[#166FE5]"
                         >
                           {submitting
@@ -448,7 +448,7 @@ export default function RepresentativePage() {
                               ? 'Save Changes'
                               : 'Locked'
                             : 'Submit application'}
-                        </Button>
+                        </Button>)}
                       </div>
                     </form>
                   </Form>

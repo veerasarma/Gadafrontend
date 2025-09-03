@@ -24,6 +24,8 @@ import {
   Wallet,
   ChartLine,
   Package,
+  ShieldAlert,
+  ClipboardList
 } from "lucide-react";
 
 /** Flat items + multiple grouped menus with children */
@@ -112,6 +114,14 @@ const nav = [
     children: [
       { to: "/admin/packages", label: "Packages", icon: Package },
       { to: "/admin/subscribers", label: "Subscribers", icon: FolderTree },
+    ],
+  },
+  {
+    label: "Reports",
+    icon: ShieldAlert,
+    children: [
+      { to: "/admin/reports", label: "Reports", icon: ShieldAlert },
+      { to: "/admin/reports/categories", label: "Reports categories", icon: ClipboardList },
     ],
   },
 ];

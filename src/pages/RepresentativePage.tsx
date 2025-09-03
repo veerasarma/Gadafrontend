@@ -62,11 +62,11 @@ type RepRecord = RepForm & {
 export default function RepresentativePage() {
   const { user,accessToken } = useAuth();
   const headers = useAuthHeader(accessToken);
-  console.log(user,'useruseruser')
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [existing, setExisting] = useState<RepRecord | null>(null);
   const [isEditing, setIsEditing] = useState(true);
+  const [packagedet, setPackagedet] = useState([]);
 
   // guard to avoid duplicate calls within the same token session
   const hasLoadedRef = useRef(false);
@@ -107,6 +107,17 @@ export default function RepresentativePage() {
       try {
         setLoading(true);
 
+        const packagedet = await fetch(`${API_BASE_URL}/api/pro/activepackage/`, {
+          headers,
+          credentials: 'include',
+          signal: ac.signal,
+        });
+        if(packagedet.ok)
+        {
+          const data1: RepRecord = await packagedet.json();
+          setPackagedet(data1?.data);
+        }
+       console.log(packagedet,'packagedet')
         const res = await fetch(`${API_BASE_URL}/api/representatives/me`, {
           headers,
           credentials: 'include',
@@ -412,7 +423,7 @@ export default function RepresentativePage() {
                             type="button"
                             variant="outline"
                             onClick={() => {
-                              if (existing) {
+                              if (existing) {ti
                                 form.reset({
                                   name: existing.name,
                                   username: existing.username,
@@ -433,7 +444,7 @@ export default function RepresentativePage() {
                             Cancel
                           </Button>
                         )}
-                        {user?.packageName && user?.packageName=='GADA VVIP' && (
+                        {packagedet?.packageName && packagedet?.packageName=='GADA VVIP' && (
 
                         <Button
                           type="submit"

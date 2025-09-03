@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import AdminEditUserDrawer from "@/components/admin/AdminEditUserDrawer";
+
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085';
 
@@ -28,6 +30,14 @@ export default function AdminUsers() {
     () => Math.max(1, Math.ceil(total / pageSize)),
     [total, pageSize]
   );
+
+  const [editId, setEditId] = useState<number | null>(null);
+const [drawerOpen, setDrawerOpen] = useState(false);
+
+function openEdit(id: number) {
+  setEditId(id);
+  setDrawerOpen(true);
+}
 
   async function load() {
     setLoading(true);
@@ -56,6 +66,23 @@ export default function AdminUsers() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, search, sort, dir, accessToken]);
+
+  function isBanned(row: any) {
+    return row?.user_banned === 1 || row?.user_banned === '1' || row?.banned === true;
+  }
+  
+  async function toggleSuspend(id: number, next: boolean, headers: HeadersInit) {
+    const res = await fetch(`${API}/api/admin/users/${id}/suspend`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ banned: next }),
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      throw new Error(t || 'Suspend request failed');
+    }
+    return res.json() as Promise<{ ok: boolean; userId: number; banned: boolean }>;
+  }
 
   const handleExport = async (format: 'csv' | 'json') => {
     try {
@@ -150,14 +177,41 @@ export default function AdminUsers() {
                   </span>
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${r.status === 'active' ? 'bg-slate-900 text-white' : 'bg-slate-200'}`}>
-                    {r.status || 'Active'}
-                  </span>
+                  {isBanned(r) ? (
+                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-red-50 text-red-700 border border-red-200">
+                      Suspended
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Active
+                    </span>
+                  )}
                 </TableCell>
+
                 <TableCell className="whitespace-nowrap">
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline">Edit</Button>
-                    <Button size="sm" className="bg-red-500 hover:bg-red-600">Suspend</Button>
+                    <Button size="sm" variant="outline" onClick={() => openEdit(r.id)}>Edit</Button>
+
+                    <Button
+                      size="sm"
+                      className={isBanned(r) ? 'bg-slate-600 hover:bg-slate-700' : 'bg-red-500 hover:bg-red-600'}
+                      onClick={async () => {
+                        try {
+                          const next = !isBanned(r);
+                          const resp = await toggleSuspend(r.id, next, headers);
+                          console.log(resp,'respresp')
+                          // Update row locally so we don't need a full reload
+                          setRows(prev => prev.map(x =>
+                            x.id === r.id ? { ...x, user_banned: resp.banned ? '1' : '0', banned: resp.banned } : x
+                          ));
+                          toast.success(resp.banned ? 'User suspended' : 'User unsuspended');
+                        } catch (e: any) {
+                          toast.error(e?.message || 'Failed to update user');
+                        }
+                      }}
+                    >
+                      {isBanned(r) ? 'Unsuspend' : 'Suspend'}
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -172,6 +226,17 @@ export default function AdminUsers() {
           </TableBody>
         </Table>
       </div>
+
+      <AdminEditUserDrawer
+  userId={editId}
+  open={drawerOpen}
+  onOpenChange={setDrawerOpen}
+  onSaved={() => {
+    // optionally refresh your users list here
+    // loadUsers();
+  }}
+/>
+
 
       {/* Pagination */}
       <div className="flex items-center justify-between">

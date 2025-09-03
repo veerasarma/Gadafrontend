@@ -11,7 +11,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator';
 import { ShareModal } from '@/components/ui/ShareModal';
 import { stripUploads } from '@/lib/url';
-import { ThumbsUp, MessageSquare, Share2, MoreHorizontal, Send, Bookmark, BookmarkMinus, Rocket } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Share2, MoreHorizontal, Send, Bookmark, BookmarkMinus, Rocket, ShieldAlert, Pencil, Delete } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,9 @@ import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { toast } from 'sonner';
 import { encodeId } from "@/lib/idCipher";
 import EditPostModal from "@/components/post/EditPostModal";
+import ReportPostModal from "@/components/post/ReportPostModal";
+
+
 
 const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 const API_BASE = API_BASE_RAW.replace(/\/+$/, '');
@@ -248,6 +251,9 @@ export function PostItem({ post, trackViews = true }: PostItemProps) {
   const [showAllComments, setShowAllComments] = useState(false);
   const [isModalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [reportOpen, setReportOpen] = useState(false);
+
 
 
   const commentsArray = Array.isArray(post?.comments) ? post.comments : [];
@@ -518,7 +524,7 @@ async function clearReaction() {
                 <Link to={`/profile/${postAuthor.id}`} className="font-semibold hover:underline">
                   {postAuthor.username}
                 </Link>
-                <p className="text-sm text-gray-500">{formatDate(post.createdAt)}</p>
+                <p className="text-sm text-gray-500">{(post.boosted=='1')?'Sponsored':formatDate(post.createdAt)}</p>
               </div>
             </div>
 
@@ -541,6 +547,11 @@ async function clearReaction() {
                     <span>{post.hasSaved ? 'Unsave Post' : 'Save Post'}</span>
                   </DropdownMenuItem>
 
+                  <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setReportOpen(true)} className="text-gray-600">
+                      <ShieldAlert size={16}/>   Report post
+                    </DropdownMenuItem>
+
                   {/* Boost / Unboost (only if author + package active) */}
                   {canBoost && (
                     <>
@@ -556,7 +567,7 @@ async function clearReaction() {
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => setEditOpen(true)} className="text-gray-600">
-                        Edit post
+                      <Pencil size={16}/> Edit post 
                       </DropdownMenuItem>
                     </>
                   )}
@@ -566,7 +577,7 @@ async function clearReaction() {
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleDeletePost} className="text-red-600">
-                        Delete post
+                       <Delete size={16}></Delete> Delete post
                       </DropdownMenuItem>
                     </>
                   )}
@@ -718,6 +729,12 @@ async function clearReaction() {
         </CardFooter>
 
         <ShareModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} onShare={(comment) => sharePost(post.id, comment)} />
+
+        <ReportPostModal
+  open={reportOpen}
+  onOpenChange={setReportOpen}
+  postId={Number(post?.id ?? post?.post_id)}
+/>
 
          <EditPostModal
           open={editOpen}

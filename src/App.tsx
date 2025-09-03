@@ -75,12 +75,14 @@ import PackagesList from "@/pages/admin/packages/PackagesList";
 import PackageForm from "@/pages/admin/packages/PackageForm";
 import AdminSubscribers from "@/pages/admin/subscribers/AdminSubscribers";
 import PointsSettingsPage from "@/pages/admin/settings/PointsSettings";
+import AdminReports from "@/pages/admin/AdminReports";
 
 import NotFound from "./pages/NotFound";
 import Packages from "./pages/Packages";
 import AdminRepresentatives from "./pages/admin/AdminRepresentatives";
 import AdminBankTransfers from "./pages/admin/AdminBankTransfers";
 import AdminEarningPayments from "./pages/admin/AdminEarningPayments";
+import AdminReportCategories from "./pages/admin/AdminReportCategories";
 
 const queryClient = new QueryClient();
 
@@ -262,6 +264,14 @@ const App = () => (
                   <Route
                     path="/admin/settings/points"
                     element={<PointsSettingsPage />}
+                  />
+                  <Route
+                    path="/admin/reports"
+                    element={<AdminReports />}
+                  />
+                  <Route
+                    path="/admin/reports/categories"
+                    element={<AdminReportCategories />}
                   />
                 </Route>
               </Routes>

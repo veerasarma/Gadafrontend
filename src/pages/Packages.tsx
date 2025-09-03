@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuthHeader } from "@/hooks/useAuthHeader";
 import { fetchPackages, buyPackage } from "@/services/packageService";
@@ -24,6 +25,7 @@ export default function Packages() {
   const [buyingId, setBuyingId] = useState<number | null>(null);
     const [walletBalance, setWalletBalance] = useState<number>(0);
   const [activePlan, setActivePlan] = useState<any | null>(null);
+   const navigate = useNavigate();
   
     useEffect(() => {
       getPackages();
@@ -63,6 +65,7 @@ export default function Packages() {
         getPackages();
       } else {
         toast.error(data.message);
+        navigate("/wallet");
         console.log(data.message || "Purchase failed");
       }
     } catch (err) {

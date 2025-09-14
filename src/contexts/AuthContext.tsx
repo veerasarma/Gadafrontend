@@ -173,7 +173,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastname: string,
     username: string,
     email: string,
-    password: string
+    password: string,
+    referralCode:string
   ) => {
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -199,6 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       bio: "",
       friends: [],
       createdAt: new Date().toISOString(),
+      referral:referralCode,
     };
     let headers = { "Content-Type": "application/json" };
     console.log(newUser, "newUsernewUsernewUser");

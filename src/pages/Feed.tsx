@@ -1,4 +1,206 @@
-import { useEffect, useMemo, useRef } from "react";
+// // Feed.tsx (drop-in)
+// import { useEffect, useMemo, useRef,useState } from "react";
+// import { useNavigate } from "react-router-dom";
+// import { Loader2, Rocket } from "lucide-react";
+// import { useAuth } from "@/contexts/AuthContext";
+// import { usePost } from "@/contexts/PostContext";
+// import { initializeStorage } from "@/lib/mock-data";
+// import { CreatePost } from "@/components/post/CreatePost";
+// import { PostItem } from "@/components/post/PostItem";
+// import { Navbar } from "@/components/layout/Navbar";
+// import Sidebar from "@/components/ui/Sidebar1";
+// import RightSidebar from "@/components/ui/RightSidebar";
+// import Stories from "@/components/ui/Stories";
+// import { useAuthHeader } from '@/hooks/useAuthHeader';
+// import { Button } from "@/components/ui/button";
+
+// const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
+// const API_BASE = API_BASE_RAW.replace(/\/+$/, '');
+
+// /** Normalize backend -> { promotedPost, list } */
+// function normalizePosts(raw: any): { promotedPost: any | null; list: any[] } {
+//   if (Array.isArray(raw)) return { promotedPost: null, list: raw };
+//   if (raw && typeof raw === "object") {
+//     return { promotedPost: raw.promoted ?? null, list: Array.isArray(raw.items) ? raw.items : [] };
+//   }
+//   return { promotedPost: null, list: [] };
+// }
+
+// /** Extract numeric post id from row */
+// function getPostId(p: any): number | null {
+//   const id = p?.post_id ?? p?.id;
+//   const n = Number(id);
+//   return Number.isFinite(n) && n > 0 ? n : null;
+// }
+
+// export default function FeedPage() {
+//   const { user, accessToken, isLoading: authLoading } = useAuth();
+//   const authHeaders = useAuthHeader(accessToken);
+//   const { posts, loading: postsLoading, busy, loadMore } = usePost();
+//   const navigate = useNavigate();
+
+//   useEffect(() => initializeStorage(), []);
+//   useEffect(() => {
+//     if (!authLoading && !accessToken) navigate("/login");
+//   }, [authLoading, accessToken, navigate]);
+
+//   // normalize posts shape
+//   const { promotedPost, list } = useMemo(() => normalizePosts(posts), [posts]);
+
+//   // visible post ids (for live-status batch call)
+//   const visibleIds = useMemo(() => {
+//     const ids: number[] = [];
+//     const pid = promotedPost ? getPostId(promotedPost) : null;
+//     if (pid) ids.push(pid);
+//     for (const p of list) {
+//       const id = getPostId(p);
+//       if (id) ids.push(id);
+//     }
+//     return Array.from(new Set(ids));
+//   }, [promotedPost, list]);
+
+//   // live status map: postId -> { isLive, channelId?, viewers? }
+//   const [liveMap, setLiveMap] = useState<Record<
+//     number,
+//     { isLive: boolean; channelId?: string; viewers?: number }
+//   >>({});
+
+//   const lastIdsStrRef = useRef<string>("");
+
+//   // single batched poll for live status
+//   useEffect(() => {
+//     const idsStr = visibleIds.join(",");
+//     if (!idsStr || idsStr === lastIdsStrRef.current) return;
+//     lastIdsStrRef.current = idsStr;
+
+//     let cancelled = false;
+//     let timer: number | undefined;
+
+//     const fetchOnce = async () => {
+//       try {
+//         const url = `${API_BASE}/api/live/for-posts?ids=${encodeURIComponent(idsStr)}`;
+//         const res = await fetch(url, { headers: authHeaders });
+//         if (!res.ok) return;
+//         const body = await res.json();
+//         if (!cancelled && body && typeof body === "object") {
+//           setLiveMap(body.data);
+//         }
+//       } catch {}
+//     };
+
+//     void fetchOnce();
+//     timer = window.setInterval(fetchOnce, 12000);
+//     return () => { cancelled = true; if (timer) window.clearInterval(timer); };
+//   }, [authHeaders, visibleIds]);
+
+//   // attach live info to each post (kept in a 'live' field on the post object)
+//   const promotedWithLive = useMemo(() => {
+//     if (!promotedPost) return null;
+//     const pid = getPostId(promotedPost);
+//     return pid ? { ...promotedPost, live: liveMap[pid] || null } : promotedPost;
+//   }, [promotedPost, liveMap]);
+
+//   const listWithLive = useMemo(() => {
+//     if (!list?.length) return [];
+//     return list.map((p) => {
+//       const pid = getPostId(p);
+//       return pid ? { ...p, live: liveMap[pid] || null } : p;
+//     });
+//   }, [list, liveMap]);
+//   if (authLoading || postsLoading) {
+//     return (
+//       <div className="flex items-center justify-center min-h-screen bg-gray-100">
+//         <Loader2 className="h-8 w-8 animate-spin text-[#1877F2]" />
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="flex flex-col h-screen bg-cus">
+//       <Navbar />
+
+//       <div className="flex flex-1 overflow-hidden px-4 lg:px-8">
+//         <div className="flex flex-1 max-w-[1600px] w-full mx-auto space-x-6">
+//           {/* LEFT SIDEBAR */}
+//           <aside className="hidden lg:block lg:w-1/5 show-sidebar-landscape min-h-0 overflow-y-auto py-6">
+//             <div className="sticky top-16">
+//               <Sidebar />
+//             </div>
+//           </aside>
+
+//           {/* CENTER FEED */}
+//           <main className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+//             <div className="space-y-6 py-6">
+//               <div className="bg-white rounded-lg shadow p-4">
+//                 <CreatePost />
+//               </div>
+
+//               <div className="bg-white rounded-lg shadow p-4">
+//                 <h2 className="text-lg font-semibold mb-4">Stories</h2>
+//                 <Stories />
+//               </div>
+
+//               <div className="mx-auto max-w-[680px] w-full flex flex-col gap-4">
+//                 {/* promoted (if present) */}
+//                 {promotedWithLive && (
+//                   <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white">
+//                     {/* ✅ pass live explicitly */}
+//                     <PostItem
+//                       post={promotedWithLive as any}
+//                       live={(promotedWithLive as any).live}
+//                     />
+//                   </div>
+//                 )}
+
+//                 {/* feed list */}
+//                 {listWithLive.map((post) => (
+//                   <div
+//                     key={String((post as any).post_id ?? (post as any).id)}
+//                     className="rounded-2xl overflow-hidden border border-slate-200 bg-white"
+//                   >
+//                     {/* ✅ pass live explicitly */}
+//                     <PostItem
+//                       post={post as any}
+//                       live={(post as any).live}
+//                     />
+//                   </div>
+//                 ))}
+
+//                 {/* load more */}
+//                 <div className="flex items-center justify-center py-6">
+//                   <Button
+//                     variant="outline"
+//                     disabled={busy}
+//                     onClick={() => loadMore?.()}
+//                     className="min-w-[180px]"
+//                   >
+//                     {busy ? (
+//                       <>
+//                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+//                         Loading…
+//                       </>
+//                     ) : (
+//                       "Load more"
+//                     )}
+//                   </Button>
+//                 </div>
+//               </div>
+//             </div>
+//           </main>
+
+//           {/* RIGHT WIDGETS */}
+//           <aside className="hidden xl:block xl:w-96 min-h-0 overflow-y-auto pt-6">
+//             <RightSidebar />
+//           </aside>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+// Feed.tsx (drop-in)
+import { useEffect, useMemo, useRef,useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Rocket } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,10 +212,36 @@ import { Navbar } from "@/components/layout/Navbar";
 import Sidebar from "@/components/ui/Sidebar1";
 import RightSidebar from "@/components/ui/RightSidebar";
 import Stories from "@/components/ui/Stories";
+import { useAuthHeader } from '@/hooks/useAuthHeader';
+import { Button } from "@/components/ui/button";
+import SponsoredAdCard from "@/components/ads/SponsoredAdCard";
+
+const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
+const API_BASE = API_BASE_RAW.replace(/\/+$/, '');
+
+
+/** Normalize backend -> { promotedPost, list } */
+function normalizePosts(raw: any): { promotedPost: any | null; list: any[] } {
+  if (Array.isArray(raw)) return { promotedPost: null, list: raw };
+  if (raw && typeof raw === "object") {
+    return { promotedPost: raw.promoted ?? null, list: Array.isArray(raw.items) ? raw.items : [] };
+  }
+  return { promotedPost: null, list: [] };
+}
+
+/** Extract numeric post id from row */
+function getPostId(p: any): number | null {
+  const id = p?.post_id ?? p?.id;
+  const n = Number(id);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 
 export default function FeedPage() {
   const { user, accessToken, isLoading: authLoading } = useAuth();
-  const { posts, loading: postsLoading } = usePost();
+  const authHeaders = useAuthHeader(accessToken);
+  const { posts, loading: postsLoading, busy, loadMore } = usePost();
+  const infiniteRef = useRef<HTMLDivElement | null>(null);
+
   const navigate = useNavigate();
 
   useEffect(() => initializeStorage(), []);
@@ -21,86 +249,85 @@ export default function FeedPage() {
     if (!authLoading && !accessToken) navigate("/login");
   }, [authLoading, accessToken, navigate]);
 
-  // --- helpers -------------------------------------------------
-  function isBoosted(p: any) {
-    return p?.boosted === true || p?.boosted === 1 || String(p?.boosted) === "1"
-      || p?.page_boosted === true || p?.page_boosted === 1 || String(p?.page_boosted) === "1";
-  }
+  // normalize posts shape
+  const { promotedPost, list } = useMemo(() => normalizePosts(posts), [posts]);
 
-  // pick one boosted post randomly per mount/when candidate set changes
-  const pickRef = useRef<number | null>(null);
-  const sigRef = useRef<string>("");
-
-  const { promotedPost, restPosts } = useMemo(() => {
-    // Handle both API shapes:
-    //  - legacy: posts is an array (we'll pick promoted randomly from boosted)
-    //  - new: posts is { promoted, items } (use promoted directly)
-    const isObjectFeed =
-      posts && !Array.isArray(posts) && typeof posts === "object";
-
-    const itemsRaw: any[] = isObjectFeed
-      ? (posts as any).items || []
-      : (Array.isArray(posts) ? posts : []);
-
-    const promotedFromApi = isObjectFeed ? (posts as any).promoted || null : null;
-
-    // New shape present: use promoted from API, ensure it's not in items
-    if (promotedFromApi) {
-      const promotedId = String(promotedFromApi.id);
-      const deduped = itemsRaw.filter((p) => String(p.id) !== promotedId);
-
-      // Show latest first (explicit, as requested)
-      const sorted = deduped.slice().sort((a, b) => {
-        const ta = Date.parse(a.createdAt || a.time || 0);
-        const tb = Date.parse(b.createdAt || b.time || 0);
-        return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
-      });
-
-      return { promotedPost: promotedFromApi, restPosts: sorted };
+  // visible post ids (for live-status batch call)
+  const visibleIds = useMemo(() => {
+    const ids: number[] = [];
+    const pid = promotedPost ? getPostId(promotedPost) : null;
+    if (pid) ids.push(pid);
+    for (const p of list) {
+      const id = getPostId(p);
+      if (id) ids.push(id);
     }
+    return Array.from(new Set(ids));
+  }, [promotedPost, list]);
 
-    // Legacy shape: randomly pick ONE boosted post from the list (on refresh)
-    if (!Array.isArray(itemsRaw) || itemsRaw.length === 0) {
-      pickRef.current = null;
-      sigRef.current = "";
-      return { promotedPost: null as any, restPosts: itemsRaw ?? [] };
-    }
+  // live status map: postId -> { isLive, channelId?, viewers? }
+  const [liveMap, setLiveMap] = useState<Record<
+    number,
+    { isLive: boolean; channelId?: string; viewers?: number }
+  >>({});
 
-    const boosted = itemsRaw.filter(isBoosted);
-    if (boosted.length === 0) {
-      pickRef.current = null;
-      sigRef.current = "";
+  const lastIdsStrRef = useRef<string>("");
 
-      // Latest first for the rest
-      const sortedAll = itemsRaw.slice().sort((a, b) => {
-        const ta = Date.parse(a.createdAt || a.time || 0);
-        const tb = Date.parse(b.createdAt || b.time || 0);
-        return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
-      });
+  useEffect(() => {
+    console.log(infiniteRef.current,'infiniteRef.current')
+    if (!infiniteRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !busy) {
+          loadMore();
+        }
+      },
+      { threshold: 1.0 }
+    );
+    observer.observe(infiniteRef.current);
+    return () => observer.disconnect();
+  }, [busy, loadMore]);
+  
 
-      return { promotedPost: null as any, restPosts: sortedAll };
-    }
+  // single batched poll for live status
+  useEffect(() => {
+    const idsStr = visibleIds.join(",");
+    if (!idsStr || idsStr === lastIdsStrRef.current) return;
+    lastIdsStrRef.current = idsStr;
 
-    // Signature of candidate set; if it changes, re-pick a new random
-    const sig = boosted.map((p) => String(p.id)).sort().join(",");
-    if (pickRef.current === null || sigRef.current !== sig) {
-      pickRef.current = Math.floor(Math.random() * boosted.length);
-      sigRef.current = sig;
-    }
+    let cancelled = false;
+    let timer: number | undefined;
 
-    const chosen = boosted[pickRef.current % boosted.length];
-    const rest = itemsRaw.filter((p) => String(p.id) !== String(chosen.id));
+    const fetchOnce = async () => {
+      try {
+        const url = `${API_BASE}/api/live/for-posts?ids=${encodeURIComponent(idsStr)}`;
+        const res = await fetch(url, { headers: authHeaders });
+        if (!res.ok) return;
+        const body = await res.json();
+        if (!cancelled && body && typeof body === "object") {
+          setLiveMap(body.data);
+        }
+      } catch {}
+    };
 
-    // Latest first for normal list
-    const sortedRest = rest.slice().sort((a, b) => {
-      const ta = Date.parse(a.createdAt || a.time || 0);
-      const tb = Date.parse(b.createdAt || b.time || 0);
-      return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
+    void fetchOnce();
+    timer = window.setInterval(fetchOnce, 12000);
+    return () => { cancelled = true; if (timer) window.clearInterval(timer); };
+  }, [authHeaders, visibleIds]);
+  // attach live info to each post (kept in a 'live' field on the post object)
+  const promotedWithLive = useMemo(() => {
+    if (!promotedPost) return null;
+    const pid = getPostId(promotedPost);
+    return pid ? { ...promotedPost, live: liveMap[pid] || null } : promotedPost;
+  }, [promotedPost, liveMap]);
+
+  const listWithLive = useMemo(() => {
+    console.log('postsLoadingpostsLoadingpostsLoading')
+    if (!list?.length) return [];
+    return list.map((p) => {
+      const pid = getPostId(p);
+      return pid ? { ...p, live: liveMap[pid] || null } : p;
     });
-
-    return { promotedPost: chosen, restPosts: sortedRest };
-  }, [posts]);
-
+  }, [list, liveMap]);
   if (authLoading || postsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -113,11 +340,10 @@ export default function FeedPage() {
     <div className="flex flex-col h-screen bg-cus">
       <Navbar />
 
-      {/* three-column layout */}
       <div className="flex flex-1 overflow-hidden px-4 lg:px-8">
         <div className="flex flex-1 max-w-[1600px] w-full mx-auto space-x-6">
           {/* LEFT SIDEBAR */}
-          <aside className="hidden lg:block lg:w-1/5 min-h-0 overflow-y-auto py-6">
+          <aside className="hidden lg:block lg:w-1/5 show-sidebar-landscape min-h-0 overflow-y-auto py-6">
             <div className="sticky top-16">
               <Sidebar />
             </div>
@@ -135,45 +361,57 @@ export default function FeedPage() {
                 <Stories />
               </div>
 
-              {/* Promoted section: exactly one boosted post, not included below */}
-              {promotedPost && (
-                <>
-                  <section className="mb-6">
-                    <div className="rounded-xl p-3">
-                      <div className="flex items-center gap-2 font-semibold mb-2">
-                        <Rocket className="w-4 h-4" />
-                        <span>Promoted posts for you</span>
-                      </div>
-                      <div className="[&_.post-card]:w-full [&_.post-card]:max-w-none">
-                        <PostItem post={promotedPost as any} />
-                      </div>
-                    </div>
-                  </section>
+              {/* Sponsored ad in the feed */}
+              <div className="mx-auto max-w-[680px] w-full">
+                <SponsoredAdCard placement="newsfeed" />
+              </div>
 
-                  <div className="my-6 flex items-center gap-3">
-                    <div className="flex-1 h-px bg-gray-200" />
-                    <span className="text-xs uppercase tracking-wide ">
-                      More posts
-                    </span>
-                    <div className="flex-1 h-px bg-gray-200" />
+              <div className="mx-auto max-w-[680px] w-full flex flex-col gap-4">
+                {/* promoted (if present) */}
+                {promotedWithLive && (
+                  <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white">
+                    {/* ✅ pass live explicitly */}
+                    <PostItem
+                      post={promotedWithLive as any}
+                      live={(promotedWithLive as any).live}
+                    />
                   </div>
-                </>
-              )}
+                )}
 
-              {/* Normal posts: latest first */}
-              {Array.isArray(restPosts) && restPosts.length > 0 ? (
-                restPosts.map((post) => <PostItem key={post.id} post={post} />)
-              ) : (
-                <div className="bg-white rounded-lg shadow p-6 text-center">
-                  <h3 className="text-xl font-semibold text-gray-700">
-                    No posts yet
-                  </h3>
-                  <p className="text-gray-500 mt-2">
-                    Create your first post or follow friends to see their posts
-                    here.
-                  </p>
+                {/* feed list */}
+                {listWithLive.map((post) => (
+                  <div
+                    key={String((post as any).post_id ?? (post as any).id)}
+                    className="rounded-2xl overflow-hidden border border-slate-200 bg-white"
+                  >
+                    {/* ✅ pass live explicitly */}
+                    <PostItem
+                      post={post as any}
+                      live={(post as any).live}
+                    />
+                  </div>
+                ))}
+                <div ref={infiniteRef} className="h-10" />
+
+                {/* load more */}
+                <div className="flex items-center justify-center py-6">
+                  <Button
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => loadMore?.()}
+                    className="min-w-[180px]"
+                  >
+                    {busy ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading…
+                      </>
+                    ) : (
+                      "Load more"
+                    )}
+                  </Button>
                 </div>
-              )}
+              </div>
             </div>
           </main>
 

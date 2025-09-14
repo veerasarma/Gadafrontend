@@ -1,85 +1,102 @@
-// Stories.tsx (DROP-IN REPLACEMENT)
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStories, Story } from "@/contexts/StoryContext";
-import { Camera } from "lucide-react";
-import { StoryViewer } from "./StoryViewer";
+import { Camera, Type } from "lucide-react";
+import StoryViewer from "./StoryViewer";
 import { stripUploads } from "@/lib/url";
 import { StoryComposer, StoryMeta } from "./StoryComposer";
 
 const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8085";
 
-const Stories: React.FC = () => {
+export default function Stories() {
   const { user } = useAuth();
-  const { stories, addStory } = useStories();
+  // ⬇️ pull setStories so we can mutate state locally after delete
+  const { stories, addStory, addTextStory, setStories } = useStories() as any;
+
+  // ensure current user group is first (like Facebook)
+  const ordered = useMemo(() => {
+    if (!user) return stories || [];
+    const mineIdx = (stories || []).findIndex(
+      (g: Story) => Number(g.userId) === Number((user as any)?.userId)
+    );
+    if (mineIdx <= 0) return stories || [];
+    const copy = [...stories];
+    const [mine] = copy.splice(mineIdx, 1);
+    copy.unshift(mine);
+    return copy;
+  }, [stories, user]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showComposer, setShowComposer] = useState(false);
-
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [viewerInitialIndex, setViewerInitialIndex] = useState<number>(0);
 
   const viewerGroup: Story | null =
-    viewerIndex !== null && stories[viewerIndex] ? stories[viewerIndex] : null;
+    viewerIndex !== null && ordered[viewerIndex] ? ordered[viewerIndex] : null;
 
-  const handleAddClick = () => fileInputRef.current?.click();
-
-  // ⛔️ Stop auto-post; open composer instead
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    e.target.value = "";
-    if (!file) return;
-    setPendingFile(file);
+  const openFile = () => fileInputRef.current?.click();
+  const openWriteup = () => {
+    setPendingFile(null);
     setShowComposer(true);
   };
 
-  const handleComposerCancel = () => {
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    e.target.value = "";
+    if (!f) return;
+    setPendingFile(f);
+    setShowComposer(true);
+  };
+
+  const onComposerCancel = () => {
     setShowComposer(false);
     setPendingFile(null);
   };
 
-  // Open your newly posted story (last item) after publish
-  const openMyLatestStory = () => {
-    setTimeout(() => {
-      const myId = (user as any)?.userId ?? (user as any)?._id;
-      const ix = stories.findIndex((g) => String(g.userId) === String(myId));
-      if (ix >= 0) {
-        const lastIdx = Math.max(0, (stories[ix]?.stories?.length ?? 1) - 1);
-        setViewerInitialIndex(lastIdx);
-        setViewerIndex(ix);
-      }
-    }, 400);
-  };
-
-  const handleComposerPublish = async (meta: StoryMeta) => {
+  const onComposerPublish = async (meta: StoryMeta, file?: File | null) => {
     try {
-      if (!pendingFile) return;
-      console.log(meta,'metametameta')
-      // Backward-compatible call: prefer (file, meta) if supported
-      // if ((addStory as any).length >= 2) {
-        await (addStory as any)(pendingFile, meta);
-      // } else {
-        // await (addStory as any)(pendingFile);
-      // }
+      if (file) await addStory(file, meta);
+      else await addTextStory(meta);
     } finally {
       setShowComposer(false);
       setPendingFile(null);
-      openMyLatestStory();
     }
   };
 
-  const handleBubbleClick = (index: number) => {
+  const openViewer = (index: number) => {
     setViewerIndex(index);
     setViewerInitialIndex(0);
   };
 
-  const handleCloseViewer = (reason: "finished" | "user" | "prevGroup") => {
+  // 🔑 NEW: when StoryViewer confirms deletion, remove from state immediately
+  const onDeleted = (deletedId: number) => {
+    setStories((prev: Story[]) => {
+      const next = prev
+        .map((g: Story) => ({
+          ...g,
+          stories: g.stories.filter((s) => Number(s.id) !== Number(deletedId)),
+        }))
+        .filter((g: Story) => g.stories.length > 0); // drop empty bubbles
+      return next;
+    });
+    setViewerIndex(null);
+  };
+
+  const onCloseViewer = (
+    reason: "finished" | "user" | "prevGroup" | "deleted"
+  ) => {
+    if (reason === "deleted") {
+      // when StoryViewer uses onDeleted we already closed; keep as fallback
+      setViewerIndex(null);
+      return;
+    }
     if (reason === "finished") {
       setViewerIndex((i) => {
         if (i == null) return i;
         const next = i + 1;
-        if (next >= stories.length) return null;
+        if (next >= ordered.length) return null;
         setViewerInitialIndex(0);
         return next;
       });
@@ -90,7 +107,9 @@ const Stories: React.FC = () => {
         if (i == null) return i;
         const prev = i - 1;
         if (prev < 0) return null;
-        const lastIdx = stories[prev]?.stories?.length ? stories[prev].stories.length - 1 : 0;
+        const lastIdx = ordered[prev]?.stories?.length
+          ? ordered[prev].stories.length - 1
+          : 0;
         setViewerInitialIndex(lastIdx);
         return prev;
       });
@@ -100,19 +119,57 @@ const Stories: React.FC = () => {
   };
 
   useEffect(() => {
-    if (viewerIndex !== null && viewerIndex >= stories.length) setViewerIndex(null);
-  }, [stories.length, viewerIndex]);
+    if (viewerIndex !== null && viewerIndex >= ordered.length) setViewerIndex(null);
+  }, [ordered.length, viewerIndex]);
+
+  // safer text-story thumb renderer
+  const getThumb = (g: Story) => {
+    const last = g.stories?.[g.stories.length - 1];
+    if (!last) return API_BASE_URL + "/uploads//profile/defaultavatar.png";
+    if (last.type === "text") return null;
+    return API_BASE_URL + "/uploads/" + stripUploads(last.url);
+  };
+
+  const parseMetaSafe = (meta: any) => {
+    if (!meta) return {};
+    if (typeof meta === "string") {
+      try {
+        return JSON.parse(meta);
+      } catch {
+        // some backends store as { caption: stringified }
+        try {
+          const m = JSON.parse((meta as any)?.caption ?? "{}");
+          return m || {};
+        } catch {
+          return {};
+        }
+      }
+    }
+    // object
+    if (meta.caption && typeof meta.caption === "string") {
+      try {
+        return JSON.parse(meta.caption);
+      } catch {
+        return meta;
+      }
+    }
+    return meta;
+  };
 
   return (
     <div className="mb-6">
       <div className="flex space-x-3 overflow-x-auto pb-2">
-        {/* Add new */}
+        {/* Add story tile */}
         {user && (
           <div className="flex-shrink-0 text-center">
-            <div className="relative w-16 h-16 rounded-full ring-2 ring-purple-400 overflow-hidden mx-auto cursor-pointer" onClick={handleAddClick}>
+            <div className="relative w-16 h-16 rounded-full ring-2 ring-[#1877F2] overflow-hidden mx-auto">
               {user.profileImage ? (
                 <img
-                  src={API_BASE_URL + "/uploads/" + stripUploads(user.profileImage)}
+                  src={
+                    API_BASE_URL +
+                    "/uploads/" +
+                    stripUploads(user.profileImage)
+                  }
                   alt="Your story"
                   className="w-full h-full object-cover"
                 />
@@ -121,46 +178,99 @@ const Stories: React.FC = () => {
                   <Camera className="h-6 w-6 text-gray-500" />
                 </div>
               )}
+              <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition flex items-center justify-center gap-2">
+                <button
+                  title="Add media"
+                  onClick={openFile}
+                  className="p-1.5 rounded-full bg-white/90 hover:bg-white"
+                >
+                  <Camera className="h-4 w-4" />
+                </button>
+                <button
+                  title="Write-up only"
+                  onClick={openWriteup}
+                  className="p-1.5 rounded-full bg-white/90 hover:bg-white"
+                >
+                  <Type className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-            <span className="mt-1 block text-xs text-gray-700 truncate w-16">Your Story</span>
-            <input type="file" accept="image/*,video/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+            <span className="mt-1 block text-xs text-gray-700 truncate w-16">
+              Your story
+            </span>
+            <input
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={onFileChange}
+            />
           </div>
         )}
 
-        {/* Bubbles */}
-        {stories.map((group, i) => (
-          <div key={group.userId ?? i} className="flex-shrink-0 text-center cursor-pointer" onClick={() => handleBubbleClick(i)}>
-            <div className="w-16 h-16 rounded-full ring-2 ring-purple-400 overflow-hidden mx-auto">
-              <img
-                src={API_BASE_URL + "/uploads/" + stripUploads(group.avatar || "/profile/defaultavatar.png")}
-                alt={group.username}
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = API_BASE_URL + "/uploads//profile/defaultavatar.png";
-                }}
-                className="w-full h-full object-cover"
-              />
+        {/* Story bubbles (current user first) */}
+        {ordered.map((g, i) => {
+          const thumb = getThumb(g);
+          const last = g.stories[g.stories.length - 1];
+          const meta = last?.type === "text" ? parseMetaSafe(last.meta) : null;
+          const bg = meta?.bg || "#111";
+          const color = meta?.color || "#fff";
+          const text = (meta?.text || meta?.caption || "Story").toString();
+
+          return (
+            <div
+              key={g.userId ?? i}
+              className="flex-shrink-0 text-center cursor-pointer"
+              onClick={() => openViewer(i)}
+            >
+              <div className="w-16 h-16 rounded-full ring-2 ring-[#1877F2] overflow-hidden mx-auto">
+                {last?.type === "text" ? (
+                  <div
+                    className="w-full h-full flex items-center justify-center text-[10px] font-semibold px-1 text-center"
+                    style={{ background: bg, color }}
+                  >
+                    {text.slice(0, 16)}
+                  </div>
+                ) : (
+                  <img
+                    src={thumb || API_BASE_URL + "/uploads//profile/defaultavatar.png"}
+                    alt={g.username}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src =
+                        API_BASE_URL + "/uploads//profile/defaultavatar.png";
+                    }}
+                  />
+                )}
+              </div>
+              <span className="mt-1 block text-xs text-gray-700 truncate w-16">
+                {Number(g.userId) === Number((user as any)?.userId)
+                  ? "Your story"
+                  : g.username}
+              </span>
             </div>
-            <span className="mt-1 block text-xs text-gray-700 truncate w-16">{group.username}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {viewerIndex !== null && stories[viewerIndex] && (
+      {viewerIndex !== null && viewerGroup && (
         <StoryViewer
-          key={`${stories[viewerIndex!]?.userId ?? viewerIndex}-${viewerInitialIndex}`}
-          group={stories[viewerIndex!]}
+          key={`${ordered[viewerIndex!]?.userId ?? viewerIndex}-${viewerInitialIndex}`}
+          group={viewerGroup}
           initialIndex={viewerInitialIndex}
-          onClose={handleCloseViewer}
+          onClose={onCloseViewer}
+          // ⬇️ NEW: get the deleted story id so we can remove it from state instantly
+          onDeleted={onDeleted}
         />
       )}
 
-      {/* Composer */}
-      {showComposer && pendingFile && (
-        <StoryComposer file={pendingFile} onCancel={handleComposerCancel} onPublish={handleComposerPublish} />
+      {showComposer && (
+        <StoryComposer
+          file={pendingFile}
+          onCancel={onComposerCancel}
+          onPublish={onComposerPublish}
+        />
       )}
     </div>
   );
-};
-
-export default Stories;
+}

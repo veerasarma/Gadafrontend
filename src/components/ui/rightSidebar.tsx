@@ -11,7 +11,7 @@ import { stripUploads } from '@/lib/url';
 import { useNavigate,Link } from "react-router-dom";
 import { toast } from 'sonner';
 import { encodeId } from "@/lib/idCipher";
-
+import SponsoredAdCard from "@/components/ads/SponsoredAdCard";   //
 
 
 type ProItem = { id: string | number; name: string; avatar: string };
@@ -331,6 +331,7 @@ export default function RightSidebar({
       />
 
       <TrendingCard tags={tags} />
+      <SponsoredAdCard placement="sidebar" />
       <SectionShell className="p-5">
         <h3 className="text-lg font-semibold">Gadashares</h3>
         <div className="mt-2 h-14 rounded-xl bg-gray-50" />

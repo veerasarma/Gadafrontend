@@ -1,6 +1,6 @@
 // StoryContext.tsx — DROP-IN
 import { createContext, useContext, useEffect, useState } from "react";
-import { fetchStories, uploadStory, Story, StoryMeta } from "@/services/storyService";
+import { fetchStories, uploadStory, Story, StoryMeta, addTextStory as apiAddTextStory, TextStoryMeta } from "@/services/storyService";
 import { useAuthHeader, useAuthHeaderupload } from "@/hooks/useAuthHeader";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
@@ -54,8 +54,49 @@ export function StoryProvider({ children }) {
     toast.success("Story published");
   };
 
+  async function addTextStory(meta: TextStoryMeta) {
+    const payload = {
+      text: (meta.text || "").trim(),
+      bg: meta.bg ?? "#111111",
+      color: meta.color ?? "#ffffff",
+      overlays: meta.overlays ?? null,
+      music_url: meta.musicUrl ?? null,
+      music_volume: typeof meta.musicVolume === "number" ? meta.musicVolume : null,
+    };
+    const res = await apiAddTextStory(payload,headers);
+    if (!res?.ok) throw new Error("Failed to create text story");
+
+    // The API returns: { ok:true, item:{ id,type:'text',url:'',meta,created_at } }
+    const newItem: StoryItem = {
+      id: res.item?.id,
+      type: "text",
+      url: "",
+      meta: res.item?.meta || { text: payload.text, bg: payload.bg, color: payload.color },
+      created_at: res.item?.created_at,
+    };
+
+    const uid = Number((user as any)?.userId ?? (user as any)?._id);
+    const uname = (user as any)?.user_name || (user as any)?.username || "You";
+    const uavatar = (user as any)?.user_profile_picture || (user as any)?.avatar || "";
+
+    setStories((prev) => {
+      const arr = [...prev];
+      const idx = arr.findIndex((g) => Number(g.userId) === uid);
+      if (idx >= 0) {
+        // push at end (so newest bubble shows text thumb); FB actually treats as latest
+        arr[idx] = { ...arr[idx], stories: [...arr[idx].stories, newItem] };
+        // ensure current user group is first
+        const [mine] = arr.splice(idx, 1);
+        arr.unshift(mine);
+        return arr;
+      }
+      // create my group at top if not present
+      return [{ userId: uid, username: uname, avatar: uavatar, stories: [newItem] }, ...arr];
+    });
+  }
+
   return (
-    <StoryContext.Provider value={{ stories, addStory }}>
+    <StoryContext.Provider value={{ stories, addStory, addTextStory }}>
       {children}
     </StoryContext.Provider>
   );

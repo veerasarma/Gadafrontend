@@ -151,23 +151,34 @@ export default function AffiliatesPage() {
 
             {/* Share + Balance */}
             <div className="bg-white rounded-lg shadow p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="min-w-0">
+              <div className="min-w-0 w-full">
                 <div className="font-medium text-sm text-gray-700">Your affiliate link</div>
-                <div className="mt-2 flex items-center gap-2">
-                  <Input value={over?.shareLink || ""} readOnly className="bg-gray-50" />
+
+                {/* Row with input + copy (mobile: full width, desktop: inline) */}
+                <div className="mt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <Input value={over?.shareLink || ""} readOnly className="bg-gray-50 flex-1" />
                   <Button variant="outline" onClick={onCopy} className="shrink-0">
                     {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
                     {copied ? "Copied" : "Copy"}
                   </Button>
+
+                  {/* Desktop: show share strip inline on the right */}
+                  <div className="hidden md:block">
+                    <ShareStrip
+                      url={over?.shareLink || ""}
+                      title="Join me on Gada Chat"
+                      text="Sign up using my invitation link!"
+                    />
+                  </div>
+                </div>
+
+                {/* Mobile / tablet: place share strip on a new line to avoid overlap */}
+                <div className="mt-3 md:hidden">
                   <ShareStrip
-                    className="mt-3"
                     url={over?.shareLink || ""}
                     title="Join me on Gada Chat"
                     text="Sign up using my invitation link!"
-                    // Uncomment & set if you want a Messenger button:
-                    // fbAppId={import.meta.env.VITE_FB_APP_ID}
-                    // fbRedirectUri={`${location.origin}/share-callback`}
-                    />
+                  />
                 </div>
               </div>
               <div className="text-right">

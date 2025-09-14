@@ -79,3 +79,22 @@ export async function searchPeopleForChat(q: string, headers: Record<string,stri
     return res.json() as Promise<Array<{ id:number; username:string; fullName:string; avatar?:string|null }>>;
   }
   
+  export type SendStoryReplyPayload = {
+    storyId: number;
+    toUserId: number;
+    text: string | null;
+    emojiCode: number | null; // 1..6 from stories_reaction_types
+    previewUrl?: string | null; // optional – for messenger bubble thumbnail
+  };
+  
+  export async function sendStoryReply(payload: SendStoryReplyPayload,headers: Record<string,string> = {}) {
+    const r = await fetch(`${API_BASE_URL}/api/messenger/story-reply`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: headers,
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error('Failed');
+    return r.json();
+  }
+  

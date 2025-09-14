@@ -42,6 +42,7 @@ import EventsInvites from '@/pages/EventsInvites';
 import EventView from '@/pages/EventView';
 import WatchPage from '@/pages/Watch';
 import AffiliatesPage from '@/pages/AffiliatesPage';
+import AdsManager from '@/pages/AdsManager';
 import { ChatDockProvider } from "@/contexts/ChatDockContext";
 
 
@@ -76,6 +77,7 @@ import PackageForm from "@/pages/admin/packages/PackageForm";
 import AdminSubscribers from "@/pages/admin/subscribers/AdminSubscribers";
 import PointsSettingsPage from "@/pages/admin/settings/PointsSettings";
 import AdminReports from "@/pages/admin/AdminReports";
+import AdminAdsSettings from "@/pages/admin/AdminAdsSettings";
 
 import NotFound from "./pages/NotFound";
 import Packages from "./pages/Packages";
@@ -83,6 +85,7 @@ import AdminRepresentatives from "./pages/admin/AdminRepresentatives";
 import AdminBankTransfers from "./pages/admin/AdminBankTransfers";
 import AdminEarningPayments from "./pages/admin/AdminEarningPayments";
 import AdminReportCategories from "./pages/admin/AdminReportCategories";
+import AdminAds from "./pages/admin/AdminAds";
 
 const queryClient = new QueryClient();
 
@@ -154,6 +157,7 @@ const App = () => (
                   <Route path="/events/:id" element={<EventView />} />
                   <Route path="/watch" element={<WatchPage />} />
                   <Route path="/affiliates" element={<AffiliatesPage />} />
+                  <Route path="/ads" element={<AdsManager />} />
                  
                   
 
@@ -272,6 +276,14 @@ const App = () => (
                   <Route
                     path="/admin/reports/categories"
                     element={<AdminReportCategories />}
+                  />
+                  <Route
+                    path="/admin/ads"
+                    element={<AdminAds />}
+                  />
+                  <Route
+                    path="/admin/adssettings"
+                    element={<AdminAdsSettings />}
                   />
                 </Route>
               </Routes>

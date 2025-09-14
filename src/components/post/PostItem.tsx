@@ -11,7 +11,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator';
 import { ShareModal } from '@/components/ui/ShareModal';
 import { stripUploads } from '@/lib/url';
-import { ThumbsUp, MessageSquare, Share2, MoreHorizontal, Send, Bookmark, BookmarkMinus, Rocket, ShieldAlert, Pencil, Delete } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Share2, MoreHorizontal, Send, Bookmark, BookmarkMinus, Rocket, ShieldAlert, Pencil, Delete,Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,11 +24,52 @@ import { toast } from 'sonner';
 import { encodeId } from "@/lib/idCipher";
 import EditPostModal from "@/components/post/EditPostModal";
 import ReportPostModal from "@/components/post/ReportPostModal";
+import { PostDetailModal } from "@/components/post/PostDetailModal"; //
+import LivePlayer from "@/components/live/LivePlayer";
+import { useLiveStatus } from "@/hooks/useLiveStatus";
+import { Eye, Radio } from "lucide-react";
+import LiveViewerModal from "@/components/live/LiveViewerModal";
+import type { LiveSummary } from "@/services/liveService";
+
+
+
 
 
 
 const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 const API_BASE = API_BASE_RAW.replace(/\/+$/, '');
+
+
+const WATERMARK_URL = API_BASE_RAW + "/uploads/gadalogo.png";
+
+// ---------- Watermark overlay (non-invasive) ----------
+function WatermarkOverlay() {
+  return (
+    <div
+      className="pointer-events-none absolute bottom-2 right-2 opacity-70"
+      style={{ zIndex: 5 }}
+      aria-hidden
+    >
+      {/* Try image logo first; fallback to text */}
+      {/* eslint-disable-next-line jsx-a11y/alt-text */}
+      <img
+        src={WATERMARK_URL}
+        style={{ maxWidth: 96, maxHeight: 36 }}
+        onError={(e) => {
+          // If logo URL not available, show text fallback:
+          (e.currentTarget as HTMLImageElement).style.display = 'none';
+          const s = document.createElement('span');
+          s.textContent = 'GADA';
+          s.style.fontWeight = '700';
+          s.style.fontSize = '14px';
+          s.style.color = 'rgba(255,255,255,0.9)';
+          s.style.textShadow = '0 1px 2px rgba(0,0,0,0.6)';
+          (e.currentTarget.parentElement as HTMLElement)?.appendChild(s);
+        }}
+      />
+    </div>
+  );
+}
 
 // ---- Reactions catalog singleton (shared across ALL PostItem instances) ----
 type ReactionItem = { reaction: string; title: string; color?: string | null; image: string };
@@ -85,17 +126,17 @@ let pendingViewIds = new Set<string>();
 let flushHandle: number | null = null;
 
 async function flushBatch(authHeaders: Record<string, string>) {
-  const ids = Array.from(pendingViewIds);
-  pendingViewIds.clear();
-  flushHandle = null;
-  if (!ids.length) return;
-  try {
-    await fetch(`${API_BASE}/api/postsviews/batch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify({ ids }),
-    });
-  } catch {}
+  // const ids = Array.from(pendingViewIds);
+  // pendingViewIds.clear();
+  // flushHandle = null;
+  // if (!ids.length) return;
+  // try {
+  //   await fetch(`${API_BASE}/api/postsviews/batch`, {
+  //     method: 'POST',
+  //     headers: { 'Content-Type': 'application/json', ...authHeaders },
+  //     body: JSON.stringify({ ids }),
+  //   });
+  // } catch {}
 }
 function queueView(postId: string, authHeaders: Record<string, string>) {
   if (seenViewIds.has(postId)) return;
@@ -111,10 +152,13 @@ const resolveMediaUrl = (url: string) => {
   return `${API_BASE}/uploads/${clean}`;
 };
 
-interface PostItemProps {
-  post: Post & { boosted?: any; boostedBy?: any };
+
+
+type PostItemProps = {
+  post: any;                  // your existing type
+  live?: LiveSummary | null;  // NEW
   trackViews?: boolean;
-}
+};
 
 const fmt = (n: number) =>
   n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + "M" :
@@ -132,6 +176,8 @@ function CollapsibleText({
 }) {
   const [expanded, setExpanded] = useState(false);
   const needsClamp = (text?.length || 0) > charThreshold;
+
+  
 
   // ~1.5rem line-height (leading-6). Adjust if you change the line-height class.
   const maxHeightRem = `${(maxLines * 1.5).toFixed(1)}rem`;
@@ -239,12 +285,10 @@ function ReactionPickerInline({
   );
 }
 
-export function PostItem({ post, trackViews = true }: PostItemProps) {
+export function PostItem({ post, live, trackViews = true }: PostItemProps) {
   const { user, accessToken } = useAuth();
-  
   const authHeaders = useAuthHeader(accessToken);
   const { likePost, commentPost, deletePost, sharePost, toggleSave } = usePost();
-
 
   const [commentContent, setCommentContent] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
@@ -252,7 +296,18 @@ export function PostItem({ post, trackViews = true }: PostItemProps) {
   const [isModalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+
   const [reportOpen, setReportOpen] = useState(false);
+
+  // NEW: local state for one-click preview
+  const [detailOpen, setDetailOpen] = useState(false);
+  const openPreview = () => { if (trackViews !== false) setDetailOpen(true); };
+
+const [watchOpen, setWatchOpen] = useState(false);
+
+
 
 
 
@@ -308,6 +363,9 @@ const initialMyReaction: string | null = useMemo(() => {
 
 const [reactions, setReactions] = useState<ReactionCount[]>(initialReactions);
 const [myReaction, setMyReaction]   = useState<string | null>(initialMyReaction);
+
+
+
 
 
 useEffect(() => {
@@ -427,32 +485,32 @@ async function clearReaction() {
       : entry.intersectionRatio > 0;
     return supported && entry.intersectionRatio >= minRatio;
   }
-  useEffect(() => {
-    if (!trackViews) return;
-    const el = viewRef.current;
-    if (!el || typeof window === 'undefined') return;
-    let dwellTimer: number | null = null;
-    const root = getScrollParent(el);
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.target !== el) continue;
-          if (isVisible(entry, 0.75)) {
-            if (dwellTimer) clearTimeout(dwellTimer);
-            dwellTimer = window.setTimeout(() => {
-              queueView(String(post.id), authHeaders);
-              io.unobserve(el);
-            }, 1000);
-          } else {
-            if (dwellTimer) { clearTimeout(dwellTimer); dwellTimer = null; }
-          }
-        }
-      },
-      { root, threshold: [0, 0.25, 0.5, 0.75, 1] }
-    );
-    io.observe(el);
-    return () => { if (dwellTimer) clearTimeout(dwellTimer); io.disconnect(); };
-  }, [post.id, authHeaders, trackViews]);
+  // useEffect(() => {
+  //   if (!trackViews) return;
+  //   const el = viewRef.current;
+  //   if (!el || typeof window === 'undefined') return;
+  //   let dwellTimer: number | null = null;
+  //   const root = getScrollParent(el);
+  //   const io = new IntersectionObserver(
+  //     (entries) => {
+  //       for (const entry of entries) {
+  //         if (entry.target !== el) continue;
+  //         if (isVisible(entry, 0.75)) {
+  //           if (dwellTimer) clearTimeout(dwellTimer);
+  //           dwellTimer = window.setTimeout(() => {
+  //             queueView(String(post.id), authHeaders);
+  //             io.unobserve(el);
+  //           }, 1000);
+  //         } else {
+  //           if (dwellTimer) { clearTimeout(dwellTimer); dwellTimer = null; }
+  //         }
+  //       }
+  //     },
+  //     { root, threshold: [0, 0.25, 0.5, 0.75, 1] }
+  //   );
+  //   io.observe(el);
+  //   return () => { if (dwellTimer) clearTimeout(dwellTimer); io.disconnect(); };
+  // }, [post.id, authHeaders, trackViews]);
 
   const handleLike = () => { if (user) likePost(post.id); };
 
@@ -475,7 +533,6 @@ async function clearReaction() {
       setSaving(false);
     }
   };
-
   const handleToggleBoost = async () => {
     if (!canBoost || boostBusy) return;
     setBoostBusy(true);
@@ -549,7 +606,7 @@ async function clearReaction() {
 
                   <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => setReportOpen(true)} className="text-gray-600">
-                      <ShieldAlert size={16}/>   Report post
+                      <ShieldAlert className="mr-2 h-4 w-4 shrink-0"/>   Report post
                     </DropdownMenuItem>
 
                   {/* Boost / Unboost (only if author + package active) */}
@@ -567,7 +624,7 @@ async function clearReaction() {
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => setEditOpen(true)} className="text-gray-600">
-                      <Pencil size={16}/> Edit post 
+                      <Pencil className="mr-2 h-4 w-4 shrink-0"/> Edit post 
                       </DropdownMenuItem>
                     </>
                   )}
@@ -577,7 +634,7 @@ async function clearReaction() {
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleDeletePost} className="text-red-600">
-                       <Delete size={16}></Delete> Delete post
+                      <Trash2 className="mr-2 h-4 w-4 shrink-0" /> Delete post
                       </DropdownMenuItem>
                     </>
                   )}
@@ -595,6 +652,26 @@ async function clearReaction() {
           {post.images.length > 0 && (
             <div className={`grid ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2 mb-3`}>
               {post.images.map((img, i) => (
+                <div key={i} className="relative group rounded-md overflow-hidden">
+                  <img
+                    src={resolveMediaUrl(img)}
+                    alt="Post"
+                    className="rounded-md w-full object-cover cursor-zoom-in"
+                    style={{ maxHeight: post.images.length === 1 ? '500px' : '250px' }}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = `${API_BASE}/uploads/profile/defaultavatar.png`; }}
+                    onClick={openPreview}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <WatermarkOverlay />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* {post.images.length > 0 && (
+            <div className={`grid ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2 mb-3`}>
+              {post.images.map((img, i) => (
                 <img
                   key={i}
                   src={resolveMediaUrl(img)}
@@ -605,13 +682,31 @@ async function clearReaction() {
                 />
               ))}
             </div>
-          )}
+          )} */}
 
           {/* Videos */}
-          {post.videos.length > 0 && (
+          {/* {post.videos.length > 0 && (
             <div className="mb-3">
               {post.videos.map((vid, i) => (
                 <video key={i} src={resolveMediaUrl(vid)} controls className="rounded-md w-full" style={{ maxHeight: '500px' }} />
+              ))}
+            </div>
+          )} */}
+
+{post.videos.length > 0 && (
+            <div className="mb-3">
+              {post.videos.map((vid, i) => (
+                <div key={i} className="relative rounded-md overflow-hidden">
+                  <video
+                    src={resolveMediaUrl(vid)}
+                    controls
+                    className="rounded-md w-full cursor-zoom-in"
+                    style={{ maxHeight: '500px' }}
+                    onClick={openPreview}
+                    preload="metadata"
+                  />
+                  <WatermarkOverlay />
+                </div>
               ))}
             </div>
           )}
@@ -716,6 +811,19 @@ async function clearReaction() {
               </Button>
             </div>
 
+            {!!live && live?.live && !live.ended && (
+            <button
+              type="button"
+              onClick={() => setViewerOpen(true)}
+              className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+              title="Watch live"
+            >
+              <Radio className="h-4 w-4 fill-red-600 text-red-600" />
+              <span className="font-medium">LIVE</span>
+              <span className="text-slate-500">· {live.viewers}</span>
+            </button>
+          )}
+
             {/* VIEWS (read-only) */}
             <div>
               <div className="w-full h-11 rounded-none flex items-center justify-center gap-2 text-slate-600 select-none">
@@ -799,6 +907,21 @@ async function clearReaction() {
             )}
           </div>
         )}
+
+<PostDetailModal
+          postId={String(post.id)}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          initialLive={live as any}
+        />
+  {/* Live viewer modal */}
+  {viewerOpen && (
+  <LiveViewerModal
+    postId={Number(post?.id ?? post?.post_id)}
+    open={viewerOpen}
+    onOpenChange={setViewerOpen}
+  />
+)}
       </Card>
     </div>
   );

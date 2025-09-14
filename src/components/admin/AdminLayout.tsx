@@ -25,7 +25,8 @@ import {
   ChartLine,
   Package,
   ShieldAlert,
-  ClipboardList
+  ClipboardList,
+  Megaphone
 } from "lucide-react";
 
 /** Flat items + multiple grouped menus with children */
@@ -109,6 +110,14 @@ const nav = [
     ],
   },
   {
+    label: "Ads Management",
+    icon: Megaphone,
+    children: [
+      { to: "/admin/ads", label: "Ads Management", icon: Megaphone },
+      { to: "/admin/adssettings", label: "AdminAdsSettings", icon: ClipboardList },
+    ],
+  },
+  {
     label: "Pros",
     icon: Package,
     children: [
@@ -124,6 +133,7 @@ const nav = [
       { to: "/admin/reports/categories", label: "Reports categories", icon: ClipboardList },
     ],
   },
+  
 ];
 
 export default function AdminLayout() {

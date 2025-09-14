@@ -201,6 +201,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     // Live notifications → add to list, bump unread, play sound (if enabled)
     s.on("notification:new", (notif: NotificationItem) => {
+      console.log(notif,'notification:new')
       setItems((prev) => [notif, ...prev]);
       setUnreadCount((c) => c + 1);
       playPing();

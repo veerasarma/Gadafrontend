@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState,useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,9 +24,15 @@ export function RegisterForm() {
   const navigate = useNavigate();
   const { register } = useAuth();
 
+  const referralCode = useMemo(() => {
+    const qs = new URLSearchParams(location.search);
+    return qs.get('ref') || qs.get('r') || '';
+  }, [location.search]);
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!firstname || !lastname || !username || !email || !password || !confirmPassword) {
       setError('Please fill in all fields');
       return;
@@ -39,17 +45,15 @@ export function RegisterForm() {
       setError('Password must be at least 6 characters long');
       return;
     }
-    
+
     setIsSubmitting(true);
     setError('');
-    
     try {
-      const success = await register(firstname, lastname, username, email, password);
-      if (success) {
+      // SAFE: passing an extra arg won’t break existing register() that ignores it
+      const ok = await register(firstname, lastname, username, email, password, referralCode || undefined);
+      if (ok) {
         setSuccess('Registration completed successfully, Please check your email and activate the account');
-        window.setTimeout(() => {
-          navigate('/login');
-        }, 3000);
+        window.setTimeout(() => navigate('/login'), 3000);
       } else {
         setError('Email is already in use');
       }
@@ -163,6 +167,15 @@ export function RegisterForm() {
               </button>
             </div>
           </div>
+
+           {/* (Optional) show the ref code if present */}
+           {referralCode && (
+            <div className="space-y-1">
+              <Label>Referred by</Label>
+              <Input value={referralCode} readOnly className="bg-gray-100" />
+            </div>
+          )}
+
           
           <Button 
             type="submit" 

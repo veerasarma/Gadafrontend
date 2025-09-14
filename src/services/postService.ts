@@ -27,10 +27,21 @@ export async function uploadMedia(files: File[],headers:Record<string,string>): 
   }));
 }
 
-export async function fetchPosts(headers: Record<string,string>) {
-  const res = await fetch(`${API_BASE_URL}/api/posts?withPromoted=1`, { headers, credentials: 'include' });
-  return handle<any[]>(res);
+export async function fetchPosts(headers: HeadersInit, offset = 0, limit = 20) {
+  const url = new URL(`${API_BASE_URL}/api/posts?withPromoted=1`);
+  url.searchParams.set("offset", String(offset));
+  url.searchParams.set("limit", String(limit));
+
+  const r = await fetch(url.toString(), { headers });
+  const data = await r.json();
+  return data || [];
 }
+
+// export async function fetchPosts(headers: Record<string,string>) {
+//   const res = await fetch(`${API_BASE_URL}/api/posts?withPromoted=1`, { headers, credentials: 'include' });
+//   return handle<any[]>(res);
+// }
+
 
 export async function fetchPostDetail(id: string, headers: Record<string,string>) {
   const res = await fetch(`${API_BASE_URL}/api/posts/${id}`, { headers, credentials: 'include' });
@@ -142,6 +153,20 @@ export async function fetchSavedPostsEnriched(
   if (!res.ok) throw new Error('Failed to load saved posts');
   return res.json();
 }
+
+export async function deletePost(postId: string, headers?: Record<string, string>) {
+  const r = await fetch(`${API_BASE_URL}/api/posts/${encodeURIComponent(postId)}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers,
+  });
+  if (!r.ok) {
+    const msg = await r.text().catch(() => '');
+    throw new Error(msg || 'Delete failed');
+  }
+  return r.json();
+}
+
 
 
 

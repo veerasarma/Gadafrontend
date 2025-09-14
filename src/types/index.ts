@@ -14,6 +14,7 @@ export interface User {
   roles?: string[];
   packageactive:boolean;
   packageName:string;
+  referral:string;
 }
 
 export interface Post {

@@ -296,7 +296,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Coins, MessageSquare, Eye, UserPlus, RefreshCw, Wallet, Info } from 'lucide-react';
+import { Coins, MessageSquare, Eye, UserPlus, RefreshCw, Wallet, Info,Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { getPointsOverview, getPointsLogs, type PointsOverview, type PointsRow } from '@/services/pointsService';
@@ -317,6 +317,7 @@ export default function PointsPage() {
   const { accessToken } = useAuth();
   const headers = useAuthHeader(accessToken);
   const logsReqIdRef = useRef(0);
+  const logsSeq = useRef(0);
 
   function useDebounced<T>(value: T, ms = 300) {
     const [v, setV] = useState(value);
@@ -341,14 +342,19 @@ export default function PointsPage() {
 const authKey = accessToken || '';
 const debouncedQ = useDebounced(q, 350);
 
+const [pts, setPts] = useState<number | ''>('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const ppc = ov?.rules.conversion.pointsPerNaira ?? 10; // “Each X points equal ₦1”
+  const transferEnabled = !!ov?.rules.conversion.enabled;
+  const moneyPreview = typeof pts === 'number' && pts > 0 ? Math.floor((pts / ppc) * 100) / 100 : 0;
 
 
-/** 1) Overview — exactly once per token (even in StrictMode) */
+
+// Overview (exactly once per token)
 const didInitOverview = useRef(false);
 useEffect(() => {
   if (!authKey) return;
-
-  // avoid double call in StrictMode
   if (didInitOverview.current) return;
   didInitOverview.current = true;
 
@@ -364,56 +370,74 @@ useEffect(() => {
       setLoading(false);
     }
   })();
-
   return () => ac.abort();
-}, [authKey]); // only the token changes re-run this once
+}, [authKey]);
 
-/** 2) Logs — latest-wins with abort + sequence id */
-const logsSeq = useRef(0);
+// Logs (latest wins)
 useEffect(() => {
   if (!authKey) return;
-
   const seq = ++logsSeq.current;
   const ac = new AbortController();
-
   setLoading(true);
   (async () => {
     try {
-      const res = await getPointsLogs(
-        headers,
-        { page, limit: pageSize, q: debouncedQ, sort: 'time', dir: 'desc', signal: ac.signal }
-      );
-
-      // only the most recent request may commit
-      // if (logsSeq.current !== seq) return;
-      console.log(res,'resresresres')
+      const res = await getPointsLogs(headers, { page, limit: pageSize, q: debouncedQ, sort: 'time', dir: 'desc', signal: ac.signal });
       setRows(res.rows);
       setTotal(res.total);
-      if (res.page !== page) setPage(res.page); // avoid useless state set
+      if (res.page !== page) setPage(res.page);
     } catch (e) {
       if ((e as any)?.name !== 'AbortError') console.error(e);
     } finally {
       if (logsSeq.current === seq) setLoading(false);
     }
   })();
-
   return () => ac.abort();
 }, [authKey, page, pageSize, debouncedQ]);
 
+const totalPages = Math.max(1, Math.ceil(total / pageSize));
+const current = Math.min(page, totalPages);
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const current = Math.min(page, totalPages);
+const RULES = useMemo(() => {
+  if (!ov) return [];
+  return [
+    { title: 'Points', subtitle: 'For creating a new post', points: ov.rules.post_create, icon: 'post' as const },
+    { title: 'Points', subtitle: 'For each post view', points: ov.rules.post_view, icon: 'view' as const },
+    { title: 'Points', subtitle: 'For any comment on your post', points: ov.rules.post_comment, icon: 'comment' as const },
+    { title: 'Points', subtitle: 'For each follower you got', points: ov.rules.follow, icon: 'follow' as const },
+    { title: 'Points', subtitle: 'For referring user', points: ov.rules.refer, icon: 'refer' as const },
+  ];
+}, [ov]);
 
-  const RULES = useMemo(() => {
-    if (!ov) return [];
-    return [
-      { title: 'Points', subtitle: 'For creating a new post', points: ov.rules.post_create, icon: 'post' as const },
-      { title: 'Points', subtitle: 'For each post view', points: ov.rules.post_view, icon: 'view' as const },
-      { title: 'Points', subtitle: 'For any comment on your post', points: ov.rules.post_comment, icon: 'comment' as const },
-      { title: 'Points', subtitle: 'For each follower you got', points: ov.rules.follow, icon: 'follow' as const },
-      { title: 'Points', subtitle: 'For referring user', points: ov.rules.refer, icon: 'refer' as const },
-    ];
-  }, [ov]);
+// NEW: submit transfer
+const onTransfer = async () => {
+  if (!ov) return;
+  const amt = typeof pts === 'number' ? pts : 0;
+  if (amt <= 0) return toast.error('Enter points amount');
+  if (!transferEnabled) return toast.error('Transfer is currently disabled');
+  if (amt > ov.balances.points) return toast.error('Insufficient points');
+
+  setSubmitting(true);
+  try {
+    // call backend directly (keeps change localized to this page)
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085'}/api/points/transfer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(headers as any) },
+      body: JSON.stringify({ points: amt }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data?.ok) throw new Error(data?.error || 'Transfer failed');
+
+    toast.success(`Transferred ${amt} points → ₦${data.moved.money}`);
+    // refresh overview balances
+    const fresh = await getPointsOverview(headers);
+    setOv(fresh);
+    setPts('');
+  } catch (e: any) {
+    toast.error(e?.message || 'Transfer failed');
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <div className="flex flex-col min-h-screen bg-cus">
@@ -437,7 +461,7 @@ useEffect(() => {
                   <div className="space-y-1 text-sm leading-6">
                     <div className="font-semibold">Points System</div>
                     <div>
-                      Each <b>{ov?.rules.conversion.pointsPerNaira ?? 10}</b> points equal ₦1.
+                      Each <b>{ppc}</b> points equal ₦1.
                       {ov && <span className="ml-2">Daily limit: <b>{ov.rules.daily_limit}</b> • Remaining today: <b>{ov.remainingToday}</b></span>}
                     </div>
                     <div>Your daily points limit resets {ov ? `~ every ${ov.windowHours}h` : 'daily'} after your last valid earn.</div>
@@ -446,6 +470,26 @@ useEffect(() => {
                 </div>
               </div>
             </Card>
+
+               {/* Balances */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+              <Card className="overflow-hidden">
+                <div className="bg-gradient-to-r from-sky-500 to-indigo-500 p-5 text-white">
+                  <div className="text-sm/6 opacity-90">Points Balance</div>
+                  <div className="mt-2 text-2xl font-semibold">
+                    {ov ? ov.balances.points.toLocaleString() : '—'} Points
+                  </div>
+                </div>
+              </Card>
+              <Card className="overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-5 text-white">
+                  <div className="text-sm/6 opacity-90">Wallet Balance</div>
+                  <div className="mt-2 text-2xl font-semibold">
+                    ₦{ov ? ov.balances.money.toLocaleString() : '—'}
+                  </div>
+                </div>
+              </Card>
+            </div>
 
             {/* Rule cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -462,16 +506,35 @@ useEffect(() => {
                 </Card>
               ))}
               {/* Optional transfer card */}
-              <Card>
-                <CardContent className="p-4 flex items-start justify-between">
-                  <div>
-                    <div className="text-3xl font-bold">↔</div>
-                    <div className="text-sm text-gray-500">Transfer</div>
-                    <div className="mt-2 text-gray-700 text-sm">Transfer points to wallet</div>
+             {/* NEW: Transfer card */}
+            <Card>
+              <CardContent className="p-4 flex flex-col sm:flex-row sm:items-end gap-3">
+                <div className="flex-1">
+                  <label className="text-sm text-gray-600 block mb-1">Points to convert</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={pts}
+                    onChange={(e) => setPts(e.target.value === '' ? '' : Math.max(0, Math.floor(Number(e.target.value))))}
+                    placeholder="e.g. 100"
+                    className="max-w-xs"
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    Preview: ₦{moneyPreview} &nbsp;•&nbsp; Rate: {ppc} pts = ₦1
                   </div>
-                  <div className="rounded-full bg-gray-100 p-2 text-gray-600"><RuleIcon type="transfer" /></div>
-                </CardContent>
-              </Card>
+                  {!transferEnabled && <div className="text-xs text-red-600 mt-1">Transfers are currently disabled.</div>}
+                </div>
+                <div>
+                  <Button disabled={!transferEnabled || submitting || !pts || (ov ? (Number(pts) > ov.balances.points) : true)} onClick={onTransfer}>
+                    {submitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Transferring…</> : 'Transfer to Wallet'}
+                  </Button>
+                  {ov && pts && Number(pts) > ov.balances.points && (
+                    <div className="text-xs text-red-600 mt-2">Insufficient points</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
             </div>
 
             {/* Balances */}

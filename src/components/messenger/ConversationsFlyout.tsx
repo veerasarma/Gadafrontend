@@ -1,5 +1,6 @@
+// src/components/messenger/ConversationsFlyout.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageCircle, Loader2, Search, EllipsisVertical } from "lucide-react";
+import { MessageCircle, Loader2, Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,6 @@ import { useAuthHeader } from "@/hooks/useAuthHeader";
 import { stripUploads } from "@/lib/url";
 import { useChatDock } from "@/contexts/ChatDockContext";
 import NewChatModal from "@/components/messenger/NewChatModal";
-// 🔁 reuse your existing service
 import { fetchConversations } from "@/services/messengerService";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8085";
@@ -24,6 +24,21 @@ type Conversation = {
   unread?: number;
 };
 
+type IncomingOffer = {
+  conversationId: number;
+  fromUserId: number;
+  kind: "audio" | "video";
+  room: string;
+  callId: number;
+  sdp: RTCSessionDescriptionInit;
+};
+
+declare global {
+  interface Window {
+    __GADA_OFFERS__?: Record<number, IncomingOffer>;
+  }
+}
+
 const initials = (name: string) =>
   (name || "?")
     .split(" ")
@@ -35,16 +50,22 @@ const initials = (name: string) =>
 export default function ConversationsFlyout() {
   const { accessToken } = useAuth();
   const headers = useAuthHeader(accessToken);
-  const { openConversation, openChatWith } = useChatDock();
+
+  const {
+    openConversation,
+    openChatWith,
+    ensureWindowForConversation,
+    socket,
+  } = useChatDock();
 
   // shared data
   const [items, setItems] = useState<Conversation[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cursor, setCursor] = useState<string | null>(null); // optional, if backend supports
+  const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
 
-  // search (client-side filter for now)
+  // search
   const [q, setQ] = useState("");
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -56,10 +77,10 @@ export default function ConversationsFlyout() {
     });
   }, [q, items]);
 
-  // modal to start new chat
+  // modals
   const [newOpen, setNewOpen] = useState(false);
 
-  // desktop popover & mobile sheet
+  // desktop popover & mobile sheet visibility
   const [openPopover, setOpenPopover] = useState(false);
   const [openSheet, setOpenSheet] = useState(false);
 
@@ -68,20 +89,19 @@ export default function ConversationsFlyout() {
     const shouldLoad = openPopover || openSheet;
     if (!shouldLoad || items) return;
     void loadConversations(true);
-  }, [openPopover, openSheet]); // eslint-disable-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openPopover, openSheet]);
 
   async function loadConversations(reset = false) {
     if (busy) return;
     setBusy(true);
     setError(null);
     try {
-      // If your service supports paging: fetchConversations(headers, { cursor, limit: 20 })
       const res: any = await fetchConversations(headers);
-      // normalize — expect array; nextCursor optional:
       const list: Conversation[] = Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []);
       const next = res?.nextCursor ?? null;
 
-      setItems((prev) => reset ? list : [ ...(prev || []), ...list ]);
+      setItems((prev) => (reset ? list : [ ...(prev || []), ...list ]));
       setCursor(next);
       setHasMore(Boolean(next));
     } catch (e: any) {
@@ -97,6 +117,71 @@ export default function ConversationsFlyout() {
     setOpenPopover(false);
     setOpenSheet(false);
   }
+
+  // ---------- ALWAYS-ON CALL OFFER LISTENER ----------
+  const attachedRef = useRef(false);
+  useEffect(() => {
+    if (!socket) return;
+
+    const attach = () => {
+      if (attachedRef.current) return;
+
+      const onOffer = async (payload: any) => {
+        console.log("recieved here")
+        const offer: IncomingOffer = {
+          conversationId: Number(payload.conversationId),
+          fromUserId: Number(payload.fromUserId),
+          kind: payload.kind,
+          room: payload.room,
+          callId: Number(payload.callId),
+          sdp: payload.sdp,
+        };
+
+        // 1) Ensure the chat window is open for this conversation/user
+        try {
+          if (ensureWindowForConversation) {
+            await ensureWindowForConversation(offer.conversationId, offer.fromUserId);
+          } else if (openChatWith) {
+            await openChatWith(offer.fromUserId);
+          } else {
+            // best-effort: keep dock logic minimal if only openConversation is available
+            openConversation(offer.conversationId, {
+              id: offer.fromUserId,
+              username: "",
+              fullName: "",
+            } as any);
+          }
+        } catch (e) {
+          console.error("[call:offer] failed to open chat window", e);
+        }
+
+        // 2) Buffer the offer globally so a window mounting slightly later can still access it
+        window.__GADA_OFFERS__ = window.__GADA_OFFERS__ || {};
+        window.__GADA_OFFERS__[offer.conversationId] = offer;
+
+        // 3) Notify any already-mounted ChatWindow via a DOM event
+        try {
+          window.dispatchEvent(new CustomEvent("gada:call-offer", { detail: offer }));
+        } catch {}
+      };
+
+      socket.on("call:offer", onOffer);
+      attachedRef.current = true;
+
+      socket.once("disconnect", () => {
+        try { socket.off("call:offer", onOffer); } catch {}
+        attachedRef.current = false;
+      });
+    };
+
+    if (socket.connected) attach();
+    socket.on("connect", attach);
+
+    return () => {
+      try { socket.off("connect", attach); } catch {}
+      attachedRef.current = false;
+    };
+  }, [socket, ensureWindowForConversation, openConversation, openChatWith]);
 
   function renderList(onClose?: () => void) {
     return (
@@ -147,7 +232,7 @@ export default function ConversationsFlyout() {
                     </div>
                     {c.lastTime && (
                       <div className="ml-3 text-[11px] text-gray-500 shrink-0">
-                        {new Date(c.lastTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(c.lastTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     )}
                   </div>
@@ -161,15 +246,10 @@ export default function ConversationsFlyout() {
               </button>
             ))}
 
-            {/* load more (only shows if backend supports cursor) */}
+            {/* load more (if supported) */}
             {hasMore && (
               <div className="p-2">
-                <Button
-                  onClick={() => loadConversations(false)}
-                  disabled={busy}
-                  variant="outline"
-                  className="w-full"
-                >
+                <Button onClick={() => loadConversations(false)} disabled={busy} variant="outline" className="w-full">
                   {busy ? "Loading…" : "Load more"}
                 </Button>
               </div>
@@ -220,11 +300,7 @@ export default function ConversationsFlyout() {
             <MessageCircle className="h-6 w-6" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent
-          className="w-[360px] p-0 overflow-hidden"
-          align="end"
-          sideOffset={8}
-        >
+        <PopoverContent className="w-[360px] p-0 overflow-hidden" align="end" sideOffset={8}>
           {renderList(() => setOpenPopover(false))}
         </PopoverContent>
       </Popover>

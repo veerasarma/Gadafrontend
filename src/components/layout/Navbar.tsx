@@ -27,7 +27,9 @@ import {
   ChevronUp,
   CircleDollarSign,
   UserPlus,
-  Terminal
+  Terminal,
+  HandCoins,
+  Megaphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -306,7 +308,7 @@ export function Navbar() {
 
             {/* Desktop search bar */}
             <div
-              className="hidden md:block ml-6 w-full max-w-md relative"
+              className="hidden sm:block ml-6 w-full max-w-md relative"
               ref={dropdownRef}
             >
               <form onSubmit={handleSearch} className="flex">
@@ -553,7 +555,7 @@ export function Navbar() {
           </div>
 
           {/* Desktop navigation */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <Link
               to="/"
               className="p-2 text-gray-600 hover:text-[#1877F2] hover:bg-gray-100 rounded-full"
@@ -634,7 +636,7 @@ export function Navbar() {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
+          <div className="sm:hidden flex items-center">
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="ml-2">
@@ -735,6 +737,13 @@ export function Navbar() {
                     <span>Saved</span>
                   </Link>
                   <Link
+                    to="/affiliates"
+                    className="flex items-center p-2 hover:bg-gray-100 rounded-md"
+                  >
+                    <HandCoins className="h-5 w-5 mr-3 text-[#1877F2]" />
+                    <span>Affiliates</span>
+                  </Link>
+                  <Link
                     to="/packages"
                     className="flex items-center p-2 hover:bg-gray-100 rounded-md"
                   >
@@ -747,6 +756,13 @@ export function Navbar() {
                   >
                     <Clock className="h-5 w-5 mr-3 text-[#1877F2]" />
                     <span>Memories</span>
+                  </Link>
+                  <Link
+                    to="/ads"
+                    className="flex items-center p-2 hover:bg-gray-100 rounded-md"
+                  >
+                    <Megaphone className="h-5 w-5 mr-3 text-[#1877F2]" />
+                    <span>Ads Management</span>
                   </Link>
                   <Link
                     to="/representative"

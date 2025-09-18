@@ -99,7 +99,7 @@ export function PostDetailModal({
     fetchPostDetail(postId, headers).then((p) => {
       if(!initialLive)
       {
-        setLive({channelName: p.live.channelName,live: p.live.live,viewers:0})
+        setLive({channelName: p.live?.channelName,live: p.live?.live,viewers:0})
       }
       if (alive) setPost(p as any);
     }).catch(console.error);

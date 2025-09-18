@@ -55,12 +55,39 @@ export function fetchPagePosts(idOrName: string | number, params: any, headers: 
     .then(r => { if (!r.ok) throw new Error('Failed to load posts'); return r.json(); });
 }
 
-export function createPagePost(idOrName: string | number, body: any, headers: Record<string, string> = {}) {
-  return fetch(api(`/${idOrName}/posts`), {
-    method: 'POST', credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...headers },
-    body: JSON.stringify(body)
-  }).then(r => { if (!r.ok) throw new Error('Failed to create post'); return r.json(); });
+// export function createPagePost(idOrName: string | number, body: any, headers: Record<string, string> = {}) {
+//   return fetch(api(`/${idOrName}/posts`), {
+//     method: 'POST', credentials: 'include',
+//     headers: { 'Content-Type': 'application/json', ...headers },
+//     body: JSON.stringify(body)
+//   }).then(r => { if (!r.ok) throw new Error('Failed to create post'); return r.json(); });
+// }
+
+export async function createPagePost(
+  handle: string,
+  data: { content?: string; images?: File[]; videos?: File[] },
+  headers: Record<string, string>
+) {
+  const fd = new FormData();
+  if (data.content?.trim()) fd.append('content', data.content.trim());
+  (data.images || []).forEach((f) => fd.append('images', f));
+  (data.videos || []).forEach((f) => fd.append('videos', f));
+
+  // strip json headers for multipart; keep auth if present
+  const h: Record<string, string> = { ...(headers || {}) };
+  delete h['Content-Type'];
+
+  const r = await fetch(`${API_BASE_URL}/api/pages/${encodeURIComponent(handle)}/posts`, {
+    method: 'POST',
+    headers: h,
+    body: fd,
+    credentials: 'include',
+  });
+  if (!r.ok) {
+    const t = await r.text().catch(()=>'');
+    throw new Error(t || 'Failed to create page post');
+  }
+  return r.json();
 }
 
 /* -------------------------- invites & user search -------------------------- */

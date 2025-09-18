@@ -1,11 +1,11 @@
 // src/pages/PageView.tsx
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { Button } from '@/components/ui/button';
-import { Loader2, ThumbsUp, UserPlus, X, Rocket } from 'lucide-react';
+import { Loader2, ThumbsUp, UserPlus, X, Rocket, ImageIcon, VideoIcon } from 'lucide-react';
 import { PostItem } from '@/components/post/PostItem';
 import { Textarea } from '@/components/ui/textarea';
 import PagesSidebar from '@/components/pages/pagesSidebar';
@@ -14,9 +14,10 @@ import {
   updatePageCover, updatePagePicture,
   listPageInvites, inviteUserToPage, suggestUsers,
   fetchCategories, listMyInvites,
-  togglePageBoost,            // ⬅️ NEW
+  togglePageBoost,
 } from '@/services/pagesService';
 import { stripUploads } from '@/lib/url';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8085';
@@ -47,7 +48,15 @@ export default function PageView() {
     !!summary?.admins?.some((a:any) => String(a.id) === String(user?.id)) ||
     (summary?.page?.adminId === user?.id);
 
+  // composer
   const [content, setContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [videoFiles, setVideoFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   // invites
   const [invites, setInvites] = useState<any[]|null>(null);
@@ -121,14 +130,49 @@ export default function PageView() {
     finally { setLikeBusy(false); }
   };
 
+  // ====== NEW: media handlers ======
+  function removeImage(i:number){ setImageFiles(p=>p.filter((_,x)=>x!==i)); setImagePreviews(p=>p.filter((_,x)=>x!==i)); }
+  function removeVideo(i:number){ setVideoFiles(p=>p.filter((_,x)=>x!==i)); setVideoPreviews(p=>p.filter((_,x)=>x!==i)); }
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files; if (!files?.length) return;
+    const arr = Array.from(files);
+    setImageFiles(prev=>[...prev, ...arr]);
+    setImagePreviews(prev=>[...prev, ...arr.map(f=>URL.createObjectURL(f))]);
+    e.target.value = '';
+  };
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files; if (!files?.length) return;
+    const arr = Array.from(files);
+    setVideoFiles(prev=>[...prev, ...arr]);
+    setVideoPreviews(prev=>[...prev, ...arr.map(f=>URL.createObjectURL(f))]);
+    e.target.value = '';
+  };
+
+  const resetComposer = () => {
+    setContent('');
+    setImageFiles([]); setVideoFiles([]);
+    setImagePreviews([]); setVideoPreviews([]);
+  };
+
   const onCreatePost = async () => {
-    if (!content.trim()) return;
+    if (!handle) return;
+    if (!content.trim() && imageFiles.length === 0 && videoFiles.length === 0) return;
+    setIsSubmitting(true);
     try {
-      await createPagePost(handle!, { content }, headersRef.current);
-      setContent('');
+      await createPagePost(handle, {
+        content,
+        images: imageFiles,
+        videos: videoFiles,
+      }, headersRef.current);
+      resetComposer();
+      // reload first page
       setPosts(null); setCursor(null); setDone(false);
-      void loadMore(true);
-    } catch (e) { console.error(e); }
+      await loadMore(true);
+      toast.success('Post published');
+    } catch (e:any) {
+      console.error(e);
+      toast.error(e?.message || 'Failed to create post');
+    } finally { setIsSubmitting(false); }
   };
 
   const onChangePicture = async (file?: File|null) => {
@@ -203,11 +247,9 @@ export default function PageView() {
         : prev
       );
       toast.success(next ? 'This page is now boosted.' : 'This page is now boosted.');
-     
     } catch (e:any) {
       console.error(e);
-      toast.error('Boost action failed'+e?.message || 'Please try again')
-     
+      toast.error(e?.message || 'Please try again');
     } finally {
       setBoostBusy(false);
     }
@@ -313,19 +355,69 @@ export default function PageView() {
                   </div>
                 )}
 
+                {/* ===== NEW: Page post composer with media ===== */}
                 {isAdmin && (
                   <div className="bg-white rounded-lg shadow p-4">
                     <div className="font-semibold mb-2">
                       Create a post as {summary.page.title}
                     </div>
+
                     <Textarea
                       value={content}
                       onChange={(e)=>setContent(e.target.value)}
                       placeholder="Say something…"
+                      className="resize-none min-h-[80px] focus-visible:ring-[#1877F2]"
                     />
-                    <div className="mt-2 flex justify-end">
-                      <Button onClick={onCreatePost} disabled={!content.trim()}>
-                        Post
+
+                    {/* Previews */}
+                    {imagePreviews.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mt-3">
+                        {imagePreviews.map((url, idx) => (
+                          <div key={idx} className="relative group rounded-md overflow-hidden">
+                            <img src={url} alt={`preview-${idx}`} className="w-full h-32 object-cover" />
+                            <Button type="button" variant="destructive" size="icon"
+                              className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeImage(idx)}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {videoPreviews.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                        {videoPreviews.map((url, idx) => (
+                          <div key={idx} className="relative group rounded-md overflow-hidden">
+                            <video src={url} controls className="w-full h-48 object-cover" />
+                            <Button type="button" variant="destructive" size="icon"
+                              className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeVideo(idx)}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Pickers + Post */}
+                    <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 border-t border-gray-200 gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} id="page-image-upload" />
+                        <Button type="button" variant="outline" onClick={() => imageInputRef.current?.click()} className="flex items-center text-gray-600" disabled={isSubmitting}>
+                          <ImageIcon className="h-4 w-4 mr-1 text-[#45BD62]" /> Photo
+                        </Button>
+
+                        <Input ref={videoInputRef} type="file" accept="video/*" multiple className="hidden" onChange={handleVideoChange} id="page-video-upload" />
+                        <Button type="button" variant="outline" onClick={() => videoInputRef.current?.click()} className="flex items-center text-gray-600" disabled={isSubmitting}>
+                          <VideoIcon className="h-4 w-4 mr-1 text-[#F3425F]" /> Video
+                        </Button>
+                      </div>
+
+                      <Button onClick={onCreatePost}
+                        disabled={isSubmitting || (!content.trim() && imageFiles.length === 0 && videoFiles.length === 0)}
+                        className="bg-[#1877F2] hover:bg-[#166FE5] w-full sm:w-auto">
+                        {isSubmitting ? (<><Loader2 className="h-4 w-4 mr-1 animate-spin" />Posting...</>) : ('Post')}
                       </Button>
                     </div>
                   </div>

@@ -215,6 +215,7 @@ import Stories from "@/components/ui/Stories";
 import { useAuthHeader } from '@/hooks/useAuthHeader';
 import { Button } from "@/components/ui/button";
 import SponsoredAdCard from "@/components/ads/SponsoredAdCard";
+import AdUnit from "@/components/ads/AdUnit";
 
 const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 const API_BASE = API_BASE_RAW.replace(/\/+$/, '');
@@ -348,6 +349,8 @@ export default function FeedPage() {
               <Sidebar />
             </div>
           </aside>
+
+          <AdUnit />
 
           {/* CENTER FEED */}
           <main className="flex-1 flex flex-col min-h-0 overflow-y-auto">

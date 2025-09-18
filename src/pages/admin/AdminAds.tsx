@@ -15,6 +15,9 @@ import {
   adminListAds,
   adminToggleActive,
 } from "@/services/adminAdsService";
+import { stripUploads } from '@/lib/url';
+
+const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 
 // Optional: a tiny drawer to preview an ad
 function ViewDrawer({ open, onOpenChange, ad }: { open: boolean; onOpenChange: (v: boolean) => void; ad: any | null }) {
@@ -43,7 +46,7 @@ function ViewDrawer({ open, onOpenChange, ad }: { open: boolean; onOpenChange: (
             {ad.ads_image && (
               <div>
                 <span className="font-medium block mb-1">Image</span>
-                <img src={ad.ads_image} className="rounded-md max-h-64" />
+                <img src={API_BASE_RAW+'/uploads/'+stripUploads(ad.ads_image)} className="rounded-md max-h-64" />
               </div>
             )}
             {ad.ads_url && (

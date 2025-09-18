@@ -44,7 +44,7 @@ export async function fetchPosts(headers: HeadersInit, offset = 0, limit = 20) {
 
 
 export async function fetchPostDetail(id: string, headers: Record<string,string>) {
-  const res = await fetch(`${API_BASE_URL}/api/posts/${id}`, { headers, credentials: 'include' });
+  const res = await fetch(`${API_BASE_URL}/api/posts/${id}`, { headers:headers, credentials: 'include' });
   return handle<any>(res);
 }
 

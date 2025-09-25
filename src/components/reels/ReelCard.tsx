@@ -1,4 +1,4 @@
-// ReelCard.tsx (excerpt – full component; unchanged parts kept for context)
+// ReelCard.tsx — auto-next on video end
 import { useEffect, useRef, useState } from 'react';
 import { ThumbsUp, MessageSquare, Share2, X } from 'lucide-react';
 import type { Reel, ReelComment } from '@/services/reelService';
@@ -15,9 +15,12 @@ type Props = {
   onLike: (id: number) => void;
   onShare: (id: number) => void;
   active: boolean;
+  /** Parent will move focus/active to next reel */
+  onEndedNext?: (id: number) => void;
 };
 
-export default function ReelCard({ reel, onLike, onShare, active }: Props) {
+export default function ReelCard({ reel, onLike, onShare, active, onEndedNext }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { accessToken } = useAuth();
   const headers = useAuthHeader(accessToken);
@@ -28,12 +31,34 @@ export default function ReelCard({ reel, onLike, onShare, active }: Props) {
 
   useEffect(() => {
     if (!videoRef.current) return;
-    if (active) videoRef.current.play().catch(() => {});
-    else {
+    if (active) {
+      try { videoRef.current.currentTime = 0; } catch {}
+      // Muted ensures autoplay policies allow play
+      videoRef.current.muted = true;
+      videoRef.current.play().catch(() => {});
+    } else {
       videoRef.current.pause();
-      videoRef.current.currentTime = 0;
+      try { videoRef.current.currentTime = 0; } catch {}
     }
   }, [active]);
+
+  const handleEnded = () => {
+    if (onEndedNext) {
+      onEndedNext(reel.id);
+      return;
+    }
+    // Fallback: scroll to next card in DOM
+    const currentCard = rootRef.current?.closest('[data-reel-card]') as HTMLElement | null;
+    const nextCard = currentCard?.nextElementSibling as HTMLElement | null;
+    if (nextCard) {
+      nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const nextVideo = nextCard.querySelector('video') as HTMLVideoElement | null;
+      if (nextVideo) {
+        nextVideo.muted = true;
+        setTimeout(() => nextVideo.play().catch(() => {}), 250);
+      }
+    }
+  };
 
   const loadComments = async () => {
     const rows = await getReelComments(reel.id, headers);
@@ -60,7 +85,11 @@ export default function ReelCard({ reel, onLike, onShare, active }: Props) {
     img ? `${API_BASE_URL}/uploads/${stripUploads(img)}` : DEFAULT_AVATAR;
 
   return (
-    <div className={`mx-auto w-full md:max-w-[820px] ${openComments ? 'md:max-w-[820px]' : 'md:max-w-[480px]'}`}>
+    <div
+      ref={rootRef}
+      data-reel-card
+      className={`mx-auto w-full md:max-w-[820px] ${openComments ? 'md:max-w-[820px]' : 'md:max-w-[480px]'}`}
+    >
       <div className={openComments ? 'md:grid md:grid-cols-[420px,360px] md:gap-5' : ''}>
         {/* LEFT: video card */}
         <div className="relative w-full max-w-[420px] aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-xl mx-auto">
@@ -70,7 +99,8 @@ export default function ReelCard({ reel, onLike, onShare, active }: Props) {
             className="h-full w-full object-cover"
             playsInline
             muted
-            loop
+            // Do NOT loop — we want to advance
+            onEnded={handleEnded}
             controls={false}
           />
 
@@ -110,7 +140,6 @@ export default function ReelCard({ reel, onLike, onShare, active }: Props) {
               </button>
             </div>
 
-            {/* COMMENT LIST WITH AVATARS */}
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
               {comments.length === 0 && <div className="text-sm text-gray-500">Be the first to comment</div>}
               {comments.map(c => (
@@ -151,7 +180,6 @@ export default function ReelCard({ reel, onLike, onShare, active }: Props) {
             </button>
           </div>
 
-          {/* COMMENT LIST WITH AVATARS (mobile) */}
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
             {comments.length === 0 && <div className="text-sm text-gray-500">Be the first to comment</div>}
             {comments.map(c => (

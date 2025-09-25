@@ -1,4 +1,4 @@
-// // Feed.tsx (drop-in)
+// Feed.tsx (drop-in)
 // import { useEffect, useMemo, useRef,useState } from "react";
 // import { useNavigate } from "react-router-dom";
 // import { Loader2, Rocket } from "lucide-react";
@@ -13,9 +13,12 @@
 // import Stories from "@/components/ui/Stories";
 // import { useAuthHeader } from '@/hooks/useAuthHeader';
 // import { Button } from "@/components/ui/button";
+// import SponsoredAdCard from "@/components/ads/SponsoredAdCard";
+// import AdUnit from "@/components/ads/AdUnit";
 
 // const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 // const API_BASE = API_BASE_RAW.replace(/\/+$/, '');
+
 
 // /** Normalize backend -> { promotedPost, list } */
 // function normalizePosts(raw: any): { promotedPost: any | null; list: any[] } {
@@ -37,6 +40,8 @@
 //   const { user, accessToken, isLoading: authLoading } = useAuth();
 //   const authHeaders = useAuthHeader(accessToken);
 //   const { posts, loading: postsLoading, busy, loadMore } = usePost();
+//   const infiniteRef = useRef<HTMLDivElement | null>(null);
+
 //   const navigate = useNavigate();
 
 //   useEffect(() => initializeStorage(), []);
@@ -67,6 +72,22 @@
 
 //   const lastIdsStrRef = useRef<string>("");
 
+//   useEffect(() => {
+//     console.log(infiniteRef.current,'infiniteRef.current')
+//     if (!infiniteRef.current) return;
+//     const observer = new IntersectionObserver(
+//       (entries) => {
+//         if (entries[0].isIntersecting && !busy) {
+//           loadMore();
+//         }
+//       },
+//       { threshold: 1.0 }
+//     );
+//     observer.observe(infiniteRef.current);
+//     return () => observer.disconnect();
+//   }, [busy, loadMore]);
+  
+
 //   // single batched poll for live status
 //   useEffect(() => {
 //     const idsStr = visibleIds.join(",");
@@ -92,7 +113,6 @@
 //     timer = window.setInterval(fetchOnce, 12000);
 //     return () => { cancelled = true; if (timer) window.clearInterval(timer); };
 //   }, [authHeaders, visibleIds]);
-
 //   // attach live info to each post (kept in a 'live' field on the post object)
 //   const promotedWithLive = useMemo(() => {
 //     if (!promotedPost) return null;
@@ -101,6 +121,7 @@
 //   }, [promotedPost, liveMap]);
 
 //   const listWithLive = useMemo(() => {
+//     console.log('postsLoadingpostsLoadingpostsLoading')
 //     if (!list?.length) return [];
 //     return list.map((p) => {
 //       const pid = getPostId(p);
@@ -128,6 +149,8 @@
 //             </div>
 //           </aside>
 
+//           <AdUnit />
+
 //           {/* CENTER FEED */}
 //           <main className="flex-1 flex flex-col min-h-0 overflow-y-auto">
 //             <div className="space-y-6 py-6">
@@ -138,6 +161,11 @@
 //               <div className="bg-white rounded-lg shadow p-4">
 //                 <h2 className="text-lg font-semibold mb-4">Stories</h2>
 //                 <Stories />
+//               </div>
+
+//               {/* Sponsored ad in the feed */}
+//               <div className="mx-auto max-w-[680px] w-full">
+//                 <SponsoredAdCard placement="newsfeed" />
 //               </div>
 
 //               <div className="mx-auto max-w-[680px] w-full flex flex-col gap-4">
@@ -165,6 +193,7 @@
 //                     />
 //                   </div>
 //                 ))}
+//                 <div ref={infiniteRef} className="h-10" />
 
 //                 {/* load more */}
 //                 <div className="flex items-center justify-center py-6">
@@ -198,11 +227,10 @@
 //   );
 // }
 
-
-// Feed.tsx (drop-in)
+// Feed.tsx — mobile full-width posts, desktop unchanged
 import { useEffect, useMemo, useRef,useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Rocket } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePost } from "@/contexts/PostContext";
 import { initializeStorage } from "@/lib/mock-data";
@@ -219,7 +247,6 @@ import AdUnit from "@/components/ads/AdUnit";
 
 const API_BASE_RAW = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/';
 const API_BASE = API_BASE_RAW.replace(/\/+$/, '');
-
 
 /** Normalize backend -> { promotedPost, list } */
 function normalizePosts(raw: any): { promotedPost: any | null; list: any[] } {
@@ -242,7 +269,6 @@ export default function FeedPage() {
   const authHeaders = useAuthHeader(accessToken);
   const { posts, loading: postsLoading, busy, loadMore } = usePost();
   const infiniteRef = useRef<HTMLDivElement | null>(null);
-
   const navigate = useNavigate();
 
   useEffect(() => initializeStorage(), []);
@@ -273,21 +299,18 @@ export default function FeedPage() {
 
   const lastIdsStrRef = useRef<string>("");
 
+  // infinite scroll sentinel
   useEffect(() => {
-    console.log(infiniteRef.current,'infiniteRef.current')
     if (!infiniteRef.current) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !busy) {
-          loadMore();
-        }
+        if (entries[0].isIntersecting && !busy) loadMore?.();
       },
       { threshold: 1.0 }
     );
     observer.observe(infiniteRef.current);
     return () => observer.disconnect();
   }, [busy, loadMore]);
-  
 
   // single batched poll for live status
   useEffect(() => {
@@ -314,6 +337,7 @@ export default function FeedPage() {
     timer = window.setInterval(fetchOnce, 12000);
     return () => { cancelled = true; if (timer) window.clearInterval(timer); };
   }, [authHeaders, visibleIds]);
+
   // attach live info to each post (kept in a 'live' field on the post object)
   const promotedWithLive = useMemo(() => {
     if (!promotedPost) return null;
@@ -322,13 +346,13 @@ export default function FeedPage() {
   }, [promotedPost, liveMap]);
 
   const listWithLive = useMemo(() => {
-    console.log('postsLoadingpostsLoadingpostsLoading')
     if (!list?.length) return [];
     return list.map((p) => {
       const pid = getPostId(p);
       return pid ? { ...p, live: liveMap[pid] || null } : p;
     });
   }, [list, liveMap]);
+
   if (authLoading || postsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -341,8 +365,9 @@ export default function FeedPage() {
     <div className="flex flex-col h-screen bg-cus">
       <Navbar />
 
-      <div className="flex flex-1 overflow-hidden px-4 lg:px-8">
-        <div className="flex flex-1 max-w-[1600px] w-full mx-auto space-x-6">
+      {/* NOTE: px-0 on mobile to allow full-bleed cards */}
+      <div className="flex flex-1 overflow-hidden px-0 md:px-4 lg:px-8">
+        <div className="flex flex-1 max-w-[1600px] w-full mx-auto space-x-0 md:space-x-6">
           {/* LEFT SIDEBAR */}
           <aside className="hidden lg:block lg:w-1/5 show-sidebar-landscape min-h-0 overflow-y-auto py-6">
             <div className="sticky top-16">
@@ -355,29 +380,27 @@ export default function FeedPage() {
           {/* CENTER FEED */}
           <main className="flex-1 flex flex-col min-h-0 overflow-y-auto">
             <div className="space-y-6 py-6">
-              <div className="bg-white rounded-lg shadow p-4">
+              {/* Full-width on mobile, rounded on md+ */}
+              <div className="bg-white rounded-none md:rounded-lg shadow p-4">
                 <CreatePost />
               </div>
 
-              <div className="bg-white rounded-lg shadow p-4">
+              <div className="bg-white rounded-none md:rounded-lg shadow p-4">
                 <h2 className="text-lg font-semibold mb-4">Stories</h2>
                 <Stories />
               </div>
 
               {/* Sponsored ad in the feed */}
-              <div className="mx-auto max-w-[680px] w-full">
+              <div className="w-full md:max-w-[680px] md:mx-auto">
                 <SponsoredAdCard placement="newsfeed" />
               </div>
 
-              <div className="mx-auto max-w-[680px] w-full flex flex-col gap-4">
+              {/* POSTS — full-bleed on mobile, centered 680px on md+ */}
+              <div className="w-full md:max-w-[680px] md:mx-auto flex flex-col gap-4">
                 {/* promoted (if present) */}
                 {promotedWithLive && (
-                  <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white">
-                    {/* ✅ pass live explicitly */}
-                    <PostItem
-                      post={promotedWithLive as any}
-                      live={(promotedWithLive as any).live}
-                    />
+                  <div className="rounded-none md:rounded-2xl overflow-hidden border border-slate-200 bg-white">
+                    <PostItem post={promotedWithLive as any} live={(promotedWithLive as any).live} />
                   </div>
                 )}
 
@@ -385,18 +408,16 @@ export default function FeedPage() {
                 {listWithLive.map((post) => (
                   <div
                     key={String((post as any).post_id ?? (post as any).id)}
-                    className="rounded-2xl overflow-hidden border border-slate-200 bg-white"
+                    className="rounded-none md:rounded-2xl overflow-hidden border border-slate-200 bg-white"
                   >
-                    {/* ✅ pass live explicitly */}
-                    <PostItem
-                      post={post as any}
-                      live={(post as any).live}
-                    />
+                    <PostItem post={post as any} live={(post as any).live} />
                   </div>
                 ))}
+
+                {/* infinite scroll sentinel */}
                 <div ref={infiniteRef} className="h-10" />
 
-                {/* load more */}
+                {/* manual load more (kept) */}
                 <div className="flex items-center justify-center py-6">
                   <Button
                     variant="outline"
@@ -427,3 +448,4 @@ export default function FeedPage() {
     </div>
   );
 }
+

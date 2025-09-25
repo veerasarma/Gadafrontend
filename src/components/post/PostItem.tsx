@@ -11,7 +11,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator';
 import { ShareModal } from '@/components/ui/ShareModal';
 import { stripUploads } from '@/lib/url';
-import { ThumbsUp, MessageSquare, Share2, MoreHorizontal, Send, Bookmark, BookmarkMinus, Rocket, ShieldAlert, Pencil, Delete,Trash2 } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Share2, MoreHorizontal, Send, Bookmark, BookmarkMinus, Rocket, ShieldAlert, Pencil, Delete,Trash2,CheckCircle2,Crown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,7 @@ import { useLiveStatus } from "@/hooks/useLiveStatus";
 import { Eye, Radio } from "lucide-react";
 import LiveViewerModal from "@/components/live/LiveViewerModal";
 import type { LiveSummary } from "@/services/liveService";
+import Watermark from "@/components/ui/Watermark";
 
 
 
@@ -578,10 +579,26 @@ async function clearReaction() {
                 </Avatar>
               </Link>
               <div className="leading-tight">
-                <Link to={`/profile/${postAuthor.id}`} className="font-semibold hover:underline">
-                  {postAuthor.username}
+                <Link to={`/profile/${postAuthor.id}`} className="font-semibold hover:underline inline-flex items-center gap-1 leading-none">
+                  {postAuthor.username} 
+                  {postAuthor?.user_subscribed == '1' && (
+                  <CheckCircle2
+                  size={14}
+                  strokeWidth={2.5}
+                  className="text-[#1877F2] shrink-0"
+                  />
+                  )}
+                    {postAuthor?.user_package == '3' && (
+                  <Crown
+                  size={14}
+                  strokeWidth={2.25}
+                  className="text-amber-500 relative -top-px" // tiny nudge up
+                  aria-hidden
+                  title="Premium"
+                  />
+                  )}
                 </Link>
-                <p className="text-sm text-gray-500">{(post.boosted=='1')?'Sponsored':formatDate(post.createdAt)}</p>
+                <p className="text-sm text-gray-500">{(post.boosted=='1')?'Boosted':formatDate(post.createdAt)}</p>
               </div>
             </div>
 
@@ -663,7 +680,13 @@ async function clearReaction() {
                     loading="lazy"
                     decoding="async"
                   />
-                  <WatermarkOverlay />
+                  {/* <WatermarkOverlay /> */}
+                  <Watermark
+                    src={WATERMARK_URL}   // or SVG; omit `src` to use text fallback "GADA"
+                    size={22}                    // optional; defaults to 22
+                    opacity={0.45}               // optional; 0..1
+                    position="br"                // "br" | "tr" | "bl" | "tl"
+                  />
                 </div>
               ))}
             </div>
@@ -694,7 +717,7 @@ async function clearReaction() {
           )} */}
 
 {post.videos.length > 0 && (
-            <div className="mb-3">
+            <div className={`grid ${post.videos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2 mb-3`}>
               {post.videos.map((vid, i) => (
                 <div key={i} className="relative rounded-md overflow-hidden">
                   <video
@@ -705,7 +728,13 @@ async function clearReaction() {
                     onClick={openPreview}
                     preload="metadata"
                   />
-                  <WatermarkOverlay />
+                  {/* <WatermarkOverlay /> */}
+                  <Watermark
+                    src={WATERMARK_URL}   // or SVG; omit `src` to use text fallback "GADA"
+                    size={22}                    // optional; defaults to 22
+                    opacity={0.45}               // optional; 0..1
+                    position="br"                // "br" | "tr" | "bl" | "tl"
+                  />
                 </div>
               ))}
             </div>
@@ -868,7 +897,9 @@ async function clearReaction() {
                     </Avatar>
                     <div className="flex-1">
                       <div className="bg-gray-100 rounded-lg p-2 px-3">
-                        <Link to={`/profile/${c.userId}`} className="font-semibold hover:underline">{c.username}</Link>
+                        <Link to={`/profile/${c.userId}`} className="font-semibold hover:underline">{c.username} 
+                        
+                        </Link>
                         <p className="text-sm">{c.content}</p>
                       </div>
                       <div className="flex space-x-3 text-xs text-gray-500 mt-1 ml-2">
